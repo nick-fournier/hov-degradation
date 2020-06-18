@@ -1,0 +1,7 @@
+.DS_Store
+*.csv
+.idea
+.ipynb_checkpoints/
+__pycache__
+/experiments/district_7
+hov_degradation.egg-info/
