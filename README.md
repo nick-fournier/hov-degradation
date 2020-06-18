@@ -9,7 +9,7 @@ Serves as the repository for HOV-degradation analysis
 If you have not done so already, download the hov-degradation github repository.
 
 ```bash
-git clone https://github.com/Yasharzf/hov-degradation.git
+git clone https://git-codecommit.us-west-2.amazonaws.com/v1/repos/hov-degradation
 cd hov-degradation
 ```
 
