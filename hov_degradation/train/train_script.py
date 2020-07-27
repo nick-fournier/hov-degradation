@@ -95,39 +95,39 @@ def main(hyperparam_path=None):
         with open('hyperparameters.json', 'w') as f:
             json.dump(hyperparams, f, sort_keys=True, indent=4)
 
-    # # train
-    # scores = {name: None for name in classifiers_map.keys()}
-    # np.random.seed(12345)
-    # for name, func in classifiers_map.items():
-    #     # pass parameters of the classifiers based on the hyperparams
-    #     clf = func(**hyperparams[name])
-    #
-    #     clf.fit(x_train, y_train)
-    #     train_score = clf.score(x_train, y_train)
-    #     test_score = clf.score(x_test, y_test)
-    #     scores[name] = {'train': train_score, 'test': test_score}
+    # train
+    scores = {name: None for name in classifiers_map.keys()}
+    np.random.seed(12345)
+    for name, func in classifiers_map.items():
+        # pass parameters of the classifiers based on the hyperparams
+        clf = func(**hyperparams[name])
 
-    # train neural net
-    num_layers = 3
-    hidden_units = 128
-    activation_fn = tf.keras.layers.LeakyReLU()
-    epochs = 10000
-    batch_size = 10
-    learning_rate = 0.001
-    target_ckpt = 'checkpoints/mlp.ckpt'
-    MLP = FeedForwardClassifier(x=x_train,
-                                y=y_train,
-                                x_test=x_test,
-                                y_test=y_test,
-                                num_layers=num_layers,
-                                hidden_units=hidden_units,
-                                activation_fn=activation_fn,
-                                epochs=epochs,
-                                batch_size=batch_size,
-                                learning_rate=learning_rate,
-                                target_ckpt=target_ckpt)
-    model = MLP.build_model()
-    history = MLP.train()
+        clf.fit(x_train, y_train)
+        train_score = clf.score(x_train, y_train)
+        test_score = clf.score(x_test, y_test)
+        scores[name] = {'train': train_score, 'test': test_score}
+
+    # # train neural net
+    # num_layers = 3
+    # hidden_units = 128
+    # activation_fn = tf.keras.layers.LeakyReLU()
+    # epochs = 10000
+    # batch_size = 10
+    # learning_rate = 0.001
+    # target_ckpt = 'checkpoints/mlp.ckpt'
+    # MLP = FeedForwardClassifier(x=x_train,
+    #                             y=y_train,
+    #                             x_test=x_test,
+    #                             y_test=y_test,
+    #                             num_layers=num_layers,
+    #                             hidden_units=hidden_units,
+    #                             activation_fn=activation_fn,
+    #                             epochs=epochs,
+    #                             batch_size=batch_size,
+    #                             learning_rate=learning_rate,
+    #                             target_ckpt=target_ckpt)
+    # model = MLP.build_model()
+    # history = MLP.train()
 
     with open('scores.json', 'w') as f:
         json.dump(scores, f, sort_keys=True, indent=4)
