@@ -1,6 +1,7 @@
 """Script to preprocess PeMS Station 5-Minute data"""
 import numpy as np
 import pandas as pd
+import json
 from scipy.stats import ks_2samp
 
 FREEWAYS = {
@@ -33,12 +34,13 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, df_data, df_meta):
+    def __init__(self, df_data, df_meta, location='D7'):
         """
         # TODO
         """
         self.df_data = df_data
         self.df_meta = df_meta
+        self.location = location
 
         self.df_merge = None
         self.processed_data = None
@@ -54,12 +56,16 @@ class PreProcess:
 
         """
         # filter I-210, 134, and 605 stations
-        df_meta_filtered = pd.DataFrame(columns=self.df_meta.columns)
-        for fway, value in FREEWAYS.items():
-            fway_meta = df_meta[(df_meta['Fwy'] == fway) &
-                                (df_meta['Abs_PM'] >= value['range_min']) &
-                                (df_meta['Abs_PM'] <= value['range_max'])]
-            df_meta_filtered = pd.concat([df_meta_filtered, fway_meta], axis=0)
+        if self.location == 'i210':
+            df_meta_filtered = pd.DataFrame(columns=self.df_meta.columns)
+            for fway, value in FREEWAYS.items():
+                fway_meta = df_meta[(df_meta['Fwy'] == fway) &
+                                    (df_meta['Abs_PM'] >= value['range_min']) &
+                                    (df_meta['Abs_PM'] <= value['range_max'])]
+                df_meta_filtered = pd.concat([df_meta_filtered, fway_meta],
+                                             axis=0)
+        else:
+            df_meta_filtered = df_meta
 
         # filter, only keep HOV and mainline
         df_meta_filtered = df_meta_filtered[df_meta_filtered.Type.isin(['ML',
@@ -75,7 +81,8 @@ class PreProcess:
             self.df_merge.ID.isin(usable[usable].index)]
 
         # apply misconfiguration, swap Flow and Occupancy of some HOVs with MLs
-        self.apply_misconfiguration(ratio=0.30)
+        if self.location == 'i210':
+            self.apply_misconfiguration(ratio=0.30)
 
         # get pivot based on Flow - Filter based on usable stations
         df_flow_piv = self.df_merge.pivot('Timestamp', 'ID', 'Flow')
@@ -104,6 +111,9 @@ class PreProcess:
         sorted_stations = self.df_merge.sort_values(
             by=['Fwy', 'Dir', 'Abs_PM']).ID.unique()
 
+        # get target
+        target = df_group_id['misconfigured'] if self.location == 'i210' else None
+
         self.processed_data = pd.DataFrame(
             index=sorted_stations,
             data={'avg_nighttime_flow': avg_nighttime_flow,
@@ -120,7 +130,7 @@ class PreProcess:
                       'p-value'],
                   'ks_occupancy_ml': ks_stats_occupancy['main']['p-value'],
                   'Type': df_group_id['Type'],
-                  'y': df_group_id['misconfigured']
+                  'y': target
                   })
         # filter only HOV, for now
         self.processed_data = self.processed_data[
@@ -129,7 +139,7 @@ class PreProcess:
         # split test and train
         df_train, df_test = self.split_data(self.processed_data)
 
-        return df_train, df_test
+        return df_train, df_test, neighbors
 
     def get_ks_stats(self, X, neighbors):
         """ #TODO yf
@@ -232,11 +242,11 @@ class PreProcess:
                                           'hov': None}
                         # set upstream neighbors
                         if i > 0:
-                            neighbors[_id].update({'up': _ids[i - 1]})
+                            neighbors[_id].update({'up': int(_ids[i - 1])})
 
                         # set downstream neighbors
                         if i < len(_ids) - 1:
-                            neighbors[_id].update({'down': _ids[i + 1]})
+                            neighbors[_id].update({'down': int(_ids[i + 1])})
 
                         # set mainline neighbor of the HOV at the same location
                         if typ == 'HV':
@@ -248,7 +258,7 @@ class PreProcess:
                                         # FIXME set almost equal
                                         _id, 'Abs_PM'])].index[0]
                                 neighbors[_id].update(
-                                    {'main': main_neighbor_id})
+                                    {'main': int(main_neighbor_id)})
                             except IndexError:
                                 pass
 
@@ -261,7 +271,7 @@ class PreProcess:
                                     (df_group_id['Abs_PM'] == df_group_id.loc[
                                         # FIXME set almost equal
                                         _id, 'Abs_PM'])].index[0]
-                                neighbors[_id].update({'hov': hov_neighbor_id})
+                                neighbors[_id].update({'hov': int(hov_neighbor_id)})
                             except IndexError:
                                 pass
         return neighbors
@@ -424,7 +434,15 @@ if __name__ == '__main__':
     path = "../../experiments/district_7/data/"
     df_data = pd.read_csv(path + "station_5min_2020-05-24.csv")
     df_meta = pd.read_csv(path + "meta_2020-05-23.csv")
-    data = PreProcess(df_data, df_meta)
-    df_train, df_test = data.preprocess()
-    df_train.to_csv(path[:-5] + "processed_train.csv")
-    df_test.to_csv(path[:-5] + "processed_test.csv")
+    data = PreProcess(df_data, df_meta, location='i210')
+    df_train, df_test, neighbors = data.preprocess()
+    df_train.to_csv(path[:-5] + "processed_i210_train.csv")
+    df_test.to_csv(path[:-5] + "processed_i210_test.csv")
+
+    # District 7
+    data = PreProcess(df_data, df_meta, location='D7')
+    df_train, df_test, neighbors = data.preprocess()
+    df_train.to_csv(path[:-5] + "processed_D7_train.csv")
+    df_test.to_csv(path[:-5] + "processed_D7_test.csv")
+    with open(path[:-5] + 'neighbors_D7.json', 'w') as f:
+        json.dump(neighbors, f, sort_keys=True, indent=4)
