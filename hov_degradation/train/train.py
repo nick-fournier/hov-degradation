@@ -164,5 +164,5 @@ def main(hyperparam_path=None):
 
 
 if __name__ == '__main__':
-    # main(hyperparam_path='hyperparameters.json')
-    main()
+    main(hyperparam_path='hyperparameters.json')
+    # main()
