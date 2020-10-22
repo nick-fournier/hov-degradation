@@ -3,6 +3,8 @@ import numpy as np
 import pandas as pd
 import tensorflow as tf
 import json
+import operator
+
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
@@ -63,31 +65,21 @@ def hyperparam_search(x, y, classifiers_map):
     return hyperparams
 
 
-def main(train_df_i210, test_df_i210, df_D7, hyperparam_path=None):
-    # load processed data
-    path = "../../experiments/district_7/"
-
-    # train data
-    train_df_i210 = pd.read_csv(path + "processed_i210_train.csv", index_col=0)
-    train_df_i210.dropna(inplace=True)
+def train_classification(train_df_i210,
+                         test_df_i210,
+                         df_D7,
+                         hyperparam_path=None):
+    # i210 train data
     x_train_i210 = train_df_i210.drop(columns=['Type', 'y']).values
     y_train_i210 = train_df_i210['y'].values
 
-    # test data
-    test_df_i210 = pd.read_csv(path + "processed_i210_test.csv", index_col=0)
-    test_df_i210.dropna(inplace=True)
+    # i210 test data
     x_test_i210 = test_df_i210.drop(columns=['Type', 'y']).values
     y_test_i210 = test_df_i210['y'].values
 
-    # train data
-    train_df_D7 = pd.read_csv(path + "processed_D7_train.csv", index_col=0)
-    train_df_D7.dropna(inplace=True)
-    x_train_D7 = train_df_D7.drop(columns=['Type']).values
-
-    # test data
-    test_df_D7 = pd.read_csv(path + "processed_D7_test.csv", index_col=0)
-    test_df_D7.dropna(inplace=True)
-    x_test_D7 = test_df_D7.drop(columns=['Type']).values
+    # D7
+    # x_D7 = df_D7.drop(columns=['Type', 'y']).values
+    x_D7 = df_D7.drop(columns=['Type']).values
 
     # classifiers
     classifiers_map = {
@@ -125,41 +117,41 @@ def main(train_df_i210, test_df_i210, df_D7, hyperparam_path=None):
 
         scores[name] = {'train': train_score, 'test': test_score}
 
-    # # predict on D7
-    # preds_train_D7 = clf.predict(x_train_D7)  # FIXME clf generalize
-    # train_df_D7['preds'] = preds_train_D7
-    # preds_test_D7 = clf.predict(x_test_D7)
-    # test_df_D7['preds'] = preds_test_D7
-    #
-    # misconfigs = []
-    # train_mis = list(train_df_D7[train_df_D7['preds'] == 1].index)
-    # misconfigs.append(train_mis)
-    # test_mis = list(test_df_D7[test_df_D7['preds'] == 1].index)
-    # misconfigs.append(test_mis)
-    # num_mis = len(test_mis) + len(train_mis)
-    # print("misconfigured ids: {}, num_miss: {} ".format(misconfigs, num_mis))
-    #
-    # train_df_D7.to_csv(path + "prdictions_D7_train.csv")
-    # test_df_D7.to_csv(path + "prdictions_D7_test.csv")
-
+    # dump scores
     with open('scores.json', 'w') as f:
         json.dump(scores, f, sort_keys=True, indent=4)
-    print(scores)
+    print("Classification Scores: ", scores)
+
+    # select the best model
+    # best_model = max(scores, key=operator.itemgetter(1))
+    best_model = 'Random Forrest'  # TODO
+    clf = classifiers_map[best_model](**hyperparams[best_model])
+    clf.fit(x_train_i210, y_train_i210)
+
+    # predict on D7
+    y_pred_D7 = clf.predict(x_D7)
+    df_D7['preds_classification'] = y_pred_D7
+
+    # identify misconfigured ids
+    misconfig_ids = list(df_D7[df_D7['preds_classification'] == 1].index)
+    print("Anomalies detected by the classification model: "
+          "{}".format(misconfig_ids))
+
+    # store dataframe
+    df_D7.to_csv(path + "predictions_D7.csv")
+
+    return misconfig_ids
 
 
-def train_unsupervised(data_D7, data_i210):
+def train_unsupervised(df_D7, df_i210):
     # processed data
-    x_i210 = data_i210.drop(columns=['Type', 'y']).values
-    y_i210 = data_i210['y'].values
+    x_i210 = df_i210.drop(columns=['Type', 'y']).values
+    y_i210 = df_i210['y'].values
 
-    # x_D7 = data_D7.drop(columns=['Type', 'y']).values
-    x_D7 = data_D7.drop(columns=['Type']).values
+    # x_D7 = df_D7.drop(columns=['Type', 'y']).values
+    x_D7 = df_D7.drop(columns=['Type']).values
 
-    # Example settings  - copied from https://scikit-learn.org/0.20/auto_examples/plot_anomaly_comparison.html
-    n_samples = 300
-    outliers_fraction = 0.15
-    n_outliers = int(outliers_fraction * n_samples)
-    n_inliers = n_samples - n_outliers
+    outliers_fraction = 0.09
 
     # define outlier/anomaly detection methods to be compared
     unsupervised_map = {
@@ -193,7 +185,7 @@ def train_unsupervised(data_D7, data_i210):
     # dump scores
     with open('scores_unsupervised.json', 'w') as f:
         json.dump(scores, f, sort_keys=True, indent=4)
-    print(scores)
+    print("Unsupervised Scores: ", scores)
 
     # select the best model
     best_model = max(scores, key=scores.get)
@@ -210,17 +202,16 @@ def train_unsupervised(data_D7, data_i210):
     y_pred_D7[y_pred_D7 == -1] = 1
 
     # add predictions to the dataframe
-    data_D7['preds_unsupervised'] = y_pred_D7
+    df_D7['preds_unsupervised'] = y_pred_D7
 
     # identify misconfigured ids
-    misconfig_ids = list(data_D7[data_D7['preds_unsupervised'] == 1].index)
-    print("misconfigured ids: {}".format(misconfig_ids))
+    misconfig_ids = list(df_D7[df_D7['preds_unsupervised'] == 1].index)
+    print("Anomalies detected by the unsupervised model: "
+          "{}".format(misconfig_ids))
 
     # store dataframe
-    data_D7.to_csv(path + "prdictions_D7.csv")
+    df_D7.to_csv(path + "predictions_D7.csv")
 
-    import ipdb;
-    ipdb.set_trace()
     return misconfig_ids
 
 
@@ -233,16 +224,25 @@ if __name__ == '__main__':
     train_df_i210.dropna(inplace=True)
     test_df_i210 = pd.read_csv(path + "processed_i210_test.csv", index_col=0)
     test_df_i210.dropna(inplace=True)
-    data_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
+    df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
 
     # Load D7 data
     train_df_D7 = pd.read_csv(path + "processed_D7_train.csv", index_col=0)
     test_df_D7 = pd.read_csv(path + "processed_D7_test.csv", index_col=0)
     train_df_D7.dropna(inplace=True)
     test_df_D7.dropna(inplace=True)
-    data_D7 = pd.concat([train_df_D7, test_df_D7], axis=0)
+    df_D7 = pd.concat([train_df_D7, test_df_D7], axis=0)
 
-    misconfig_ids_unsupervised = train_unsupervised(data_D7, data_i210)
-    misonfigured_ids_classification =
+    # run classification models
+    mis_ids_clf = train_classification(train_df_i210,
+                                       test_df_i210,
+                                       df_D7,
+                                       hyperparam_path='hyperparameters.json')
+    # plot
+
+
+    # run unsupervised models
+    mis_ids_unsupervised = train_unsupervised(df_D7, df_i210)
+
     # main(hyperparam_path='hyperparameters.json')
     # main()
