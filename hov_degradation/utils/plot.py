@@ -7,18 +7,18 @@ import matplotlib.ticker as ticker
 import os
 
 
-if __name__ == '__main__':
+def save_plots(df_data, df_meta, neighbors, misconfig_ids, path):
     # load data
-    path = "../../experiments/district_7/"
-    with open(path + "neighbors_D7.json") as f:
-        neighbors = json.load(f)
-    df_data = pd.read_csv(path + "data/station_5min_2020-05-24.csv")
-    df_meta = pd.read_csv(path + "data/meta_2020-05-23.csv")
-
-
-    train_data = pd.read_csv(path + "prdictions_D7_train.csv", index_col=0)
-    test_data = pd.read_csv(path + "prdictions_D7_test.csv", index_col=0)
-    misconfig_ids = list(train_data[train_data['preds'] == 1].index) + list(test_data[test_data['preds'] == 1].index)
+    # path = "../../experiments/district_7/"
+    # with open(path + "neighbors_D7.json") as f:
+    #     neighbors = json.load(f)
+    # df_data = pd.read_csv(path + "data/station_5min_2020-05-24.csv")
+    # df_meta = pd.read_csv(path + "data/meta_2020-05-23.csv")
+    #
+    #
+    # train_data = pd.read_csv(path + "prdictions_D7_train.csv", index_col=0)
+    # test_data = pd.read_csv(path + "prdictions_D7_test.csv", index_col=0)
+    # misconfig_ids = list(train_data[train_data['preds'] == 1].index) + list(test_data[test_data['preds'] == 1].index)
 
     for misconfig_id in misconfig_ids:
         # neighbors
@@ -36,7 +36,7 @@ if __name__ == '__main__':
         _df_main = df_data[df_data['Station'] == main_neighbor]
 
         # create output directory
-        outdir = path + "results/{}".format(misconfig_id)
+        outdir = path + "/{}".format(misconfig_id)
         if not os.path.exists(outdir):
             os.makedirs(outdir)
 
