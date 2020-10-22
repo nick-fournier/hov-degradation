@@ -80,7 +80,7 @@ def save_plots(df_data, df_meta, neighbors, misconfig_ids, path):
         plt.plot(_df['Timestamp'], _df['Flow'],
                  label='HOV')
         plt.subplot(212)
-        plt.title("Mainline: ".format(main_neighbor))
+        plt.title("Mainline: {}".format(main_neighbor))
         plt.xlabel('Time')
         plt.xticks([])
         for n in range(1, main_num_lanes + 1):
