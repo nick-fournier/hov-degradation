@@ -5,19 +5,18 @@ import tensorflow as tf
 import json
 import operator
 
-from sklearn.neighbors import KNeighborsClassifier
+from sklearn import svm
+from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
-from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.covariance import EllipticEnvelope
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.svm import SVC
 from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import accuracy_score
 
+from hov_degradation.utils.plot import save_plots
 from hov_degradation.models.classifiers.neural_net import FeedForwardClassifier
 
 
@@ -118,7 +117,7 @@ def train_classification(train_df_i210,
         scores[name] = {'train': train_score, 'test': test_score}
 
     # dump scores
-    with open('scores.json', 'w') as f:
+    with open('scores_classification.json', 'w') as f:
         json.dump(scores, f, sort_keys=True, indent=4)
     print("Classification Scores: ", scores)
 
@@ -190,7 +189,7 @@ def train_unsupervised(df_D7, df_i210):
     # select the best model
     best_model = max(scores, key=scores.get)
     func = unsupervised_map[best_model]
-    func.fit(x_D7)
+    # func.fit(x_D7)
     # fit the data and tag outliers
     if best_model == "Local Outlier Factor":
         y_pred_D7 = func.fit_predict(x_D7)
@@ -219,6 +218,13 @@ if __name__ == '__main__':
     # load processed data
     path = "../../experiments/district_7/"
 
+    # load neighbors
+    with open(path + "neighbors_D7.json") as f:
+        neighbors = json.load(f)
+
+    df_data = pd.read_csv(path + "data/station_5min_2020-05-24.csv")
+    df_meta = pd.read_csv(path + "data/meta_2020-05-23.csv")
+
     # load i-210 data - don't need train or test for unsupervised
     train_df_i210 = pd.read_csv(path + "processed_i210_train.csv", index_col=0)
     train_df_i210.dropna(inplace=True)
@@ -234,15 +240,22 @@ if __name__ == '__main__':
     df_D7 = pd.concat([train_df_D7, test_df_D7], axis=0)
 
     # run classification models
-    mis_ids_clf = train_classification(train_df_i210,
-                                       test_df_i210,
-                                       df_D7,
+    mis_ids_clf = train_classification(train_df_i210=train_df_i210,
+                                       test_df_i210=test_df_i210,
+                                       df_D7=df_D7,
                                        hyperparam_path='hyperparameters.json')
     # plot
-
+    save_plots(df_data=df_data,
+               df_meta=df_meta,
+               neighbors=neighbors,
+               misconfig_ids=mis_ids_clf,
+               path=path + 'results/classification')
 
     # run unsupervised models
-    mis_ids_unsupervised = train_unsupervised(df_D7, df_i210)
-
-    # main(hyperparam_path='hyperparameters.json')
-    # main()
+    mis_ids_unsupervised = train_unsupervised(df_D7=df_D7,
+                                              df_i210=df_i210)
+    save_plots(df_data=df_data,
+               df_meta=df_meta,
+               neighbors=neighbors,
+               misconfig_ids=mis_ids_unsupervised,
+               path=path + 'results/unsupervised')
