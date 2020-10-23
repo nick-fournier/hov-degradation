@@ -34,13 +34,14 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, df_data, df_meta, location='D7'):
+    def __init__(self, df_data, df_meta, location='D7', split=True):
         """
         # TODO
         """
         self.df_data = df_data
         self.df_meta = df_meta
         self.location = location
+        self.split = split
 
         self.df_merge = None
         self.processed_data = None
@@ -112,7 +113,8 @@ class PreProcess:
             by=['Fwy', 'Dir', 'Abs_PM']).ID.unique()
 
         # get target
-        target = df_group_id['misconfigured'] if self.location == 'i210' else None
+        target = df_group_id[
+            'misconfigured'] if self.location == 'i210' else None
 
         self.processed_data = pd.DataFrame(
             index=sorted_stations,
@@ -137,7 +139,11 @@ class PreProcess:
             self.processed_data.Type == 'HV']
 
         # split test and train
-        df_train, df_test = self.split_data(self.processed_data)
+        if self.split:
+            df_train, df_test = self.split_data(self.processed_data)
+        else:
+            df_train = self.processed_data
+            df_test = None
 
         return df_train, df_test, neighbors
 
@@ -271,7 +277,8 @@ class PreProcess:
                                     (df_group_id['Abs_PM'] == df_group_id.loc[
                                         # FIXME set almost equal
                                         _id, 'Abs_PM'])].index[0]
-                                neighbors[_id].update({'hov': int(hov_neighbor_id)})
+                                neighbors[_id].update(
+                                    {'hov': int(hov_neighbor_id)})
                             except IndexError:
                                 pass
         return neighbors
@@ -435,14 +442,13 @@ if __name__ == '__main__':
     df_data = pd.read_csv(path + "station_5min_2020-05-24.csv")
     df_meta = pd.read_csv(path + "meta_2020-05-23.csv")
     data = PreProcess(df_data, df_meta, location='i210')
-    df_train, df_test, neighbors = data.preprocess()
+    df_train, df_test, neighbors_i210 = data.preprocess()
     df_train.to_csv(path[:-5] + "processed_i210_train.csv")
     df_test.to_csv(path[:-5] + "processed_i210_test.csv")
 
     # District 7
-    data = PreProcess(df_data, df_meta, location='D7')
-    df_train, df_test, neighbors = data.preprocess()
-    df_train.to_csv(path[:-5] + "processed_D7_train.csv")
-    df_test.to_csv(path[:-5] + "processed_D7_test.csv")
+    data = PreProcess(df_data, df_meta, location='D7', split=False)
+    df_D7, _, neighbors_D7 = data.preprocess()
+    df_D7.to_csv(path[:-5] + "processed_D7.csv")
     with open(path[:-5] + 'neighbors_D7.json', 'w') as f:
-        json.dump(neighbors, f, sort_keys=True, indent=4)
+        json.dump(neighbors_D7, f, sort_keys=True, indent=4)
