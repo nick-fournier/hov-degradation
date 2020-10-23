@@ -259,8 +259,14 @@ if __name__ == '__main__':
                path=path + 'results/unsupervised')
 
     # store misconfigured IDs
+    common_ids = list(set(mis_ids_clf).intersection(mis_ids_unsupervised))
+    uncommon_ids = list(set(mis_ids_clf).symmetric_difference(
+        mis_ids_unsupervised))
+
     mis_ids = {'classification': mis_ids_clf,
-               'unsupervised': mis_ids_unsupervised}
+               'unsupervised': mis_ids_unsupervised,
+               'common IDs': common_ids,
+               'uncommon': uncommon_ids}
 
     # dump ids
     with open('misconfigured_ids.json', 'w') as f:
