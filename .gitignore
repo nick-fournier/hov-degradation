@@ -4,4 +4,5 @@
 .ipynb_checkpoints/
 __pycache__
 /experiments/district_7/data
+/experiments/district_7/results
 hov_degradation.egg-info/

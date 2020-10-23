@@ -77,8 +77,7 @@ def train_classification(train_df_i210,
     y_test_i210 = test_df_i210['y'].values
 
     # D7
-    # x_D7 = df_D7.drop(columns=['Type', 'y']).values
-    x_D7 = df_D7.drop(columns=['Type']).values
+    x_D7 = df_D7.drop(columns=['Type', 'y']).values
 
     # classifiers
     classifiers_map = {
@@ -147,8 +146,8 @@ def train_unsupervised(df_D7, df_i210):
     x_i210 = df_i210.drop(columns=['Type', 'y']).values
     y_i210 = df_i210['y'].values
 
-    # x_D7 = df_D7.drop(columns=['Type', 'y']).values
-    x_D7 = df_D7.drop(columns=['Type']).values
+    x_D7 = df_D7.drop(columns=['Type', 'y', 'preds_classification']).values
+    # x_D7 = df_D7.drop(columns=['Type']).values
 
     outliers_fraction = 0.09
 
@@ -233,11 +232,8 @@ if __name__ == '__main__':
     df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
 
     # Load D7 data
-    train_df_D7 = pd.read_csv(path + "processed_D7_train.csv", index_col=0)
-    test_df_D7 = pd.read_csv(path + "processed_D7_test.csv", index_col=0)
-    train_df_D7.dropna(inplace=True)
-    test_df_D7.dropna(inplace=True)
-    df_D7 = pd.concat([train_df_D7, test_df_D7], axis=0)
+    df_D7 = pd.read_csv(path + "processed_D7.csv", index_col=0)
+    df_D7.dropna(inplace=True)
 
     # run classification models
     mis_ids_clf = train_classification(train_df_i210=train_df_i210,
@@ -252,6 +248,8 @@ if __name__ == '__main__':
                path=path + 'results/classification')
 
     # run unsupervised models
+    df_D7 = pd.read_csv(path + "predictions_D7.csv", index_col=0)
+
     mis_ids_unsupervised = train_unsupervised(df_D7=df_D7,
                                               df_i210=df_i210)
     save_plots(df_data=df_data,
@@ -259,3 +257,11 @@ if __name__ == '__main__':
                neighbors=neighbors,
                misconfig_ids=mis_ids_unsupervised,
                path=path + 'results/unsupervised')
+
+    # store misconfigured IDs
+    mis_ids = {'classification': mis_ids_clf,
+               'unsupervised': mis_ids_unsupervised}
+
+    # dump ids
+    with open('misconfigured_ids.json', 'w') as f:
+        json.dump(mis_ids, f, sort_keys=True, indent=4)

@@ -114,7 +114,7 @@ class PreProcess:
 
         # get target
         target = df_group_id[
-            'misconfigured'] if self.location == 'i210' else None
+            'misconfigured'] if self.location == 'i210' else -1
 
         self.processed_data = pd.DataFrame(
             index=sorted_stations,
