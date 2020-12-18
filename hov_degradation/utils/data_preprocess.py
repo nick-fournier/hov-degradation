@@ -34,7 +34,7 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, df_data, df_meta, location='D7', split=True):
+    def __init__(self, df_data, df_meta, location='D7', df_date='2020-05-24', split=True):
         """
         # TODO
         """
@@ -42,6 +42,7 @@ class PreProcess:
         self.df_meta = df_meta
         self.location = location
         self.split = split
+        self.date = pd.to_datetime(df_date).strftime("%m/%d/%Y") #Reformats to month day year to match PeMS
 
         self.df_merge = None
         self.processed_data = None
@@ -98,8 +99,8 @@ class PreProcess:
         # df_ocupancy_piv = df_ocupancy_piv.loc[:, usable]
 
         # get nighttime average
-        begin_time = "05/24/2020 01:00:00"  # datetime.datetime(2020,5,24,1,0,0)
-        end_time = "05/24/2020 03:00:00"  # datetime.datetime(2020,5,24,3,0,0)
+        begin_time = self.date + " 01:00:00" #"05/24/2020 01:00:00"  # datetime.datetime(2020,5,24,1,0,0)
+        end_time = self.date + " 03:00:00" #"05/24/2020 03:00:00"  # datetime.datetime(2020,5,24,3,0,0)
         avg_nighttime_flow = df_flow_piv.T.loc[:, begin_time:end_time].mean(
             axis=1)
 
@@ -439,16 +440,27 @@ class PreProcess:
 
 if __name__ == '__main__':
     path = "../../experiments/district_7/data/"
-    df_data = pd.read_csv(path + "station_5min_2020-05-24.csv")
-    df_meta = pd.read_csv(path + "meta_2020-05-23.csv")
-    data = PreProcess(df_data, df_meta, location='i210')
-    df_train, df_test, neighbors_i210 = data.preprocess()
-    df_train.to_csv(path[:-5] + "processed_i210_train.csv")
-    df_test.to_csv(path[:-5] + "processed_i210_test.csv")
 
-    # District 7
-    data = PreProcess(df_data, df_meta, location='D7', split=False)
-    df_D7, _, neighbors_D7 = data.preprocess()
-    df_D7.to_csv(path[:-5] + "processed_D7.csv")
-    with open(path[:-5] + 'neighbors_D7.json', 'w') as f:
-        json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+    #dates = "2020-05-24"
+    # dates = pd.date_range("2020-05-24","2020-05-24")
+    dates = pd.date_range('2020-10-25', '2020-10-31')
+
+    for thedate in dates:
+        date = str(thedate.date())
+
+        df_data = pd.read_csv(path + "station_5min_" + date + ".csv")
+        df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
+        # I210
+        data = PreProcess(df_data, df_meta, location='i210', df_date=date)
+        df_train, df_test, neighbors_i210 = data.preprocess()
+        df_train.to_csv(path[:-5] + "processed_i210_train_" + date + ".csv")
+        df_test.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
+
+        # District 7
+        data = PreProcess(df_data, df_meta, location='D7', df_date=date, split=False)
+        df_D7, _, neighbors_D7 = data.preprocess()
+        df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
+        with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
+            json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+
+        print("Completed preprocessing of data for " + date)
