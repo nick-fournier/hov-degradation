@@ -438,29 +438,63 @@ class PreProcess:
         return df_train, df_test
 
 
-if __name__ == '__main__':
-    path = "../../experiments/district_7/data/"
+def preprocess_date_range(path = "../../experiments/district_7/data/", start_date, end_date):
 
-    #dates = "2020-05-24"
-    # dates = pd.date_range("2020-05-24","2020-05-24")
-    dates = pd.date_range('2020-10-25', '2020-10-31')
+    dates = pd.date_range(start_date, end_date)
+    df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
+
+    df_data = pd.DataFrame()
 
     for thedate in dates:
         date = str(thedate.date())
+        df_data_new = pd.read_csv(path + "station_5min_" + date + ".csv")
 
-        df_data = pd.read_csv(path + "station_5min_" + date + ".csv")
-        df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
-        # I210
-        data = PreProcess(df_data, df_meta, location='i210', df_date=date)
-        df_train, df_test, neighbors_i210 = data.preprocess()
-        df_train.to_csv(path[:-5] + "processed_i210_train_" + date + ".csv")
-        df_test.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
-
-        # District 7
-        data = PreProcess(df_data, df_meta, location='D7', df_date=date, split=False)
-        df_D7, _, neighbors_D7 = data.preprocess()
-        df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
-        with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
-            json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+        # Stack em and Add em
+        df_data = df_data.append(df_data_new, ignore_index=True)
 
         print("Completed preprocessing of data for " + date)
+
+    # I210
+    data_i210 = PreProcess(df_data, df_meta, location='i210', df_date=date)
+    train_i210_new, test_i210_new, neighbors_i210 = data_i210.preprocess()
+
+    # District 7
+    data_D7 = PreProcess(df_data, df_meta, location='D7', df_date=date, split=False)
+    df_D7_new, _, neighbors_D7 = data_D7.preprocess()
+
+
+
+    # I210
+    train_i210.to_csv(path[:-5] + "processed_i210_train_" + date + ".csv")
+    test_i210.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
+
+    # District 7
+    df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
+    with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
+        json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+
+
+if __name__ == '__main__':
+    importdates('2020-12-06', '2020-12-06')
+
+    # dates = pd.date_range(start_date, end_date)
+    # df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
+    #
+    # for thedate in dates:
+    #     date = str(thedate.date())
+    #
+    #     df_data = pd.read_csv(path + "station_5min_" + date + ".csv")
+    #     # I210
+    #     data = PreProcess(df_data, df_meta, location='i210', df_date=date)
+    #     df_train, df_test, neighbors_i210 = data.preprocess()
+    #     df_train.to_csv(path[:-5] + "processed_i210_train_" + date + ".csv")
+    #     df_test.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
+    #
+    #     # District 7
+    #     data = PreProcess(df_data, df_meta, location='D7', df_date=date, split=False)
+    #     df_D7, _, neighbors_D7 = data.preprocess()
+    #     df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
+    #     with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
+    #         json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+    #
+    #     print("Completed preprocessing of data for " + date)
