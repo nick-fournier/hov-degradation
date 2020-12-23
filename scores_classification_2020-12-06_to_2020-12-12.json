@@ -1,0 +1,18 @@
+{
+    "Decision Tree": {
+        "test": 1.0,
+        "train": 1.0
+    },
+    "KNN": {
+        "test": 1.0,
+        "train": 1.0
+    },
+    "Logistic Regression": {
+        "test": 0.9444444444444444,
+        "train": 1.0
+    },
+    "Random Forest": {
+        "test": 1.0,
+        "train": 1.0
+    }
+}

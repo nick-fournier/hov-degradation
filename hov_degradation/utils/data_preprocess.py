@@ -34,7 +34,7 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, df_data, df_meta, location='D7', df_date='2020-05-24', split=True):
+    def __init__(self, df_data, df_meta, location='D7', split=True):
         """
         # TODO
         """
@@ -42,7 +42,7 @@ class PreProcess:
         self.df_meta = df_meta
         self.location = location
         self.split = split
-        self.date = pd.to_datetime(df_date).strftime("%m/%d/%Y") #Reformats to month day year to match PeMS
+        # self.date = pd.to_datetime(df_date).strftime("%m/%d/%Y") #Reformats to month day year to match PeMS
 
         self.df_merge = None
         self.processed_data = None
@@ -98,11 +98,13 @@ class PreProcess:
         df_ocupancy_piv = self.df_merge.pivot('Timestamp', 'ID', 'Occupancy')
         # df_ocupancy_piv = df_ocupancy_piv.loc[:, usable]
 
-        # get nighttime average
-        begin_time = self.date + " 01:00:00" #"05/24/2020 01:00:00"  # datetime.datetime(2020,5,24,1,0,0)
-        end_time = self.date + " 03:00:00" #"05/24/2020 03:00:00"  # datetime.datetime(2020,5,24,3,0,0)
-        avg_nighttime_flow = df_flow_piv.T.loc[:, begin_time:end_time].mean(
-            axis=1)
+        # get nighttime average, for all days
+        df_flow_piv.index = pd.to_datetime(df_flow_piv.index, format='%m/%d/%Y %H:%M:%S', errors='ignore')
+        avg_nighttime_flow = df_flow_piv.between_time('01:00:00', '03:00:00').mean(axis=0)
+
+        # begin_time = self.date + " 01:00:00" #"05/24/2020 01:00:00"  # datetime.datetime(2020,5,24,1,0,0)
+        # end_time = self.date + " 03:00:00" #"05/24/2020 03:00:00"  # datetime.datetime(2020,5,24,3,0,0)
+        # avg_nighttime_flow = df_flow_piv.T.loc[:, begin_time:end_time].mean(axis=1)
 
         # get K-S test value for downstream and upstream stations
         neighbors = self.get_neighbors(df_group_id)
@@ -438,45 +440,45 @@ class PreProcess:
         return df_train, df_test
 
 
-def preprocess_date_range(path = "../../experiments/district_7/data/", start_date, end_date):
+if __name__ == '__main__':
 
+    start_date = '2020-12-06'
+    end_date = '2020-12-12'
+
+    path = "../../experiments/district_7/data/"
     dates = pd.date_range(start_date, end_date)
-    df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
 
+    df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
     df_data = pd.DataFrame()
 
     for thedate in dates:
         date = str(thedate.date())
-        df_data_new = pd.read_csv(path + "station_5min_" + date + ".csv")
-
-        # Stack em and Add em
+        print("Importing station_5min_" + date + ".csv...")
+        df_data_new = pd.read_csv(path + "station_5min_" + date + ".csv", header=0)
         df_data = df_data.append(df_data_new, ignore_index=True)
 
-        print("Completed preprocessing of data for " + date)
-
+    print("Pre-processing I-210 test/train data...")
     # I210
-    data_i210 = PreProcess(df_data, df_meta, location='i210', df_date=date)
-    train_i210_new, test_i210_new, neighbors_i210 = data_i210.preprocess()
+    data_i210 = PreProcess(df_data, df_meta, location='i210')
+    train_i210, test_i210, neighbors_i210 = data_i210.preprocess()
 
     # District 7
-    data_D7 = PreProcess(df_data, df_meta, location='D7', df_date=date, split=False)
-    df_D7_new, _, neighbors_D7 = data_D7.preprocess()
+    print("Pre-processing District 7 data...")
+    data_D7 = PreProcess(df_data, df_meta, location='D7', split=False)
+    df_D7, _, neighbors_D7 = data_D7.preprocess()
 
-
-
+    print("Saving results...")
     # I210
-    train_i210.to_csv(path[:-5] + "processed_i210_train_" + date + ".csv")
-    test_i210.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
+    train_i210.to_csv(path[:-5] + "processed_i210_train_" + start_date + "_to_" + end_date + ".csv")
+    test_i210.to_csv(path[:-5] + "processed_i210_test_" + start_date + "_to_" + end_date + ".csv")
 
     # District 7
-    df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
-    with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
+    df_D7.to_csv(path[:-5] + "processed_D7_" + start_date + "_to_" + end_date + ".csv")
+    with open(path[:-5] + "neighbors_D7_" + start_date + "_to_" + end_date + ".json", 'w') as f:
         json.dump(neighbors_D7, f, sort_keys=True, indent=4)
-
-
-if __name__ == '__main__':
-    importdates('2020-12-06', '2020-12-06')
-
+    print("Done")
+    #### Loop for individual dates ####
+    ###################################
     # dates = pd.date_range(start_date, end_date)
     # df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
     #

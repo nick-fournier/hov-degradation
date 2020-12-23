@@ -218,75 +218,148 @@ def train_unsupervised(df_D7, df_i210, df_date):
 if __name__ == '__main__':
     # load processed data
     path = "../../experiments/district_7/"
+    # path = "C:/gitclones/connected-corridors/hov-degradation/experiments/district_7/"
+    start_date = '2020-12-06'
+    end_date = '2020-12-12'
+    date = start_date + "_to_" + end_date
 
-    # path = "C:/git_clones/connected_corridors/hov-degradation/experiments/district_7/"
+    # load neighbors
+    with open(path + "neighbors_D7_" + date + ".json") as f:
+        neighbors = json.load(f)
 
-    # dates = pd.date_range("2020-05-24","2020-05-24")
-    dates = pd.date_range('2020-10-25', '2020-10-31')
+    # Load sensor data for plots, use wednesday
+    df_data = pd.read_csv(path + "data/station_5min_2020-12-09.csv")
+    df_meta = pd.read_csv(path + "data/meta_2020-11-16.csv")
 
-    for thedate in dates:
-        # to datetime as string
-        date = str(thedate.date())
+    # df_data = pd.DataFrame()
+    # for thedate in dates:
+    #     date = str(thedate.date())
+    #     print("Importing station_5min_" + date + ".csv...")
+    #     df_data_new = pd.read_csv(path + "data/station_5min_" + date + ".csv", header=0)
+    #     df_data = df_data.append(df_data_new, ignore_index=True)
 
-        # load neighbors
-        with open(path + "neighbors_D7_" + date + ".json") as f:
-            neighbors = json.load(f)
+    # load i-210 data - don't need train or test for unsupervised
+    train_df_i210 = pd.read_csv(path + "processed_i210_train_" + date + ".csv", index_col=0)
+    train_df_i210.dropna(inplace=True)
+    test_df_i210 = pd.read_csv(path + "processed_i210_test_" + date + ".csv", index_col=0)
+    test_df_i210.dropna(inplace=True)
+    df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
 
-        df_data = pd.read_csv(path + "data/station_5min_" + date + ".csv")
-        df_meta = pd.read_csv(path + "data/meta_2020-11-16.csv")
-        # df_meta = pd.read_csv(path + "data/meta_2020-05-23.csv")
+    # Load D7 data
+    df_D7 = pd.read_csv(path + "processed_D7_" + date + ".csv", index_col=0)
+    df_D7.dropna(inplace=True)
 
-        # load i-210 data - don't need train or test for unsupervised
-        train_df_i210 = pd.read_csv(path + "processed_i210_train_" + date + ".csv", index_col=0)
-        train_df_i210.dropna(inplace=True)
-        test_df_i210 = pd.read_csv(path + "processed_i210_test_" + date + ".csv", index_col=0)
-        test_df_i210.dropna(inplace=True)
-        df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
+    # run classification models
+    mis_ids_clf = train_classification(train_df_i210=train_df_i210,
+                                       test_df_i210=test_df_i210,
+                                       df_D7=df_D7,
+                                       df_date=date,
+                                       hyperparam_path='hyperparameters.json')
 
-        # Load D7 data
-        df_D7 = pd.read_csv(path + "processed_D7_" + date + ".csv", index_col=0)
-        df_D7.dropna(inplace=True)
+    # plot
+    print("Saving classification plots for date "+ date)
+    save_plots(df_data=df_data,
+               df_meta=df_meta,
+               neighbors=neighbors,
+               misconfig_ids=mis_ids_clf,
+               path=path + 'results/classification_' + date)
 
-        # run classification models
-        mis_ids_clf = train_classification(train_df_i210=train_df_i210,
-                                           test_df_i210=test_df_i210,
-                                           df_D7=df_D7,
-                                           df_date=date,
-                                           hyperparam_path='hyperparameters.json')
+    # run unsupervised models
+    df_D7 = pd.read_csv(path + "predictions_D7_" + date + ".csv", index_col=0)
 
-        # plot
-        print("Saving classification plots for date "+ date)
-        save_plots(df_data=df_data,
-                   df_meta=df_meta,
-                   neighbors=neighbors,
-                   misconfig_ids=mis_ids_clf,
-                   path=path + 'results/classification_' + date)
+    mis_ids_unsupervised = train_unsupervised(df_D7=df_D7,
+                                              df_i210=df_i210,
+                                              df_date=date)
+    print("Saving unsupervised plots for date " + date)
+    save_plots(df_data=df_data,
+               df_meta=df_meta,
+               neighbors=neighbors,
+               misconfig_ids=mis_ids_unsupervised,
+               path=path + 'results/unsupervised_' + date)
 
-        # run unsupervised models
-        df_D7 = pd.read_csv(path + "predictions_D7_" + date + ".csv", index_col=0)
+    # store misconfigured IDs
+    common_ids = list(set(mis_ids_clf).intersection(mis_ids_unsupervised))
+    uncommon_ids = list(set(mis_ids_clf).symmetric_difference(
+        mis_ids_unsupervised))
 
-        mis_ids_unsupervised = train_unsupervised(df_D7=df_D7,
-                                                  df_i210=df_i210,
-                                                  df_date=date)
-        print("Saving unsupervised plots for date " + date)
-        save_plots(df_data=df_data,
-                   df_meta=df_meta,
-                   neighbors=neighbors,
-                   misconfig_ids=mis_ids_unsupervised,
-                   path=path + 'results/unsupervised_' + date)
+    mis_ids = {'classification': mis_ids_clf,
+               'unsupervised': mis_ids_unsupervised,
+               'common IDs': common_ids,
+               'uncommon': uncommon_ids}
 
-        # store misconfigured IDs
-        common_ids = list(set(mis_ids_clf).intersection(mis_ids_unsupervised))
-        uncommon_ids = list(set(mis_ids_clf).symmetric_difference(
-            mis_ids_unsupervised))
+    # dump ids
+    with open('misconfigured_ids_' + date + '.json', 'w') as f:
+        json.dump(mis_ids, f, sort_keys=True, indent=4)
 
-        mis_ids = {'classification': mis_ids_clf,
-                   'unsupervised': mis_ids_unsupervised,
-                   'common IDs': common_ids,
-                   'uncommon': uncommon_ids}
+    print("Completed training and testing of data for " + date)
 
-        # dump ids
-        with open('misconfigured_ids_' + date + '.json', 'w') as f:
-            json.dump(mis_ids, f, sort_keys=True, indent=4)
 
-        print("Completed training and testing of data for " + date)
+    # # dates = pd.date_range("2020-05-24","2020-05-24")
+    # dates = pd.date_range('2020-10-25', '2020-10-31')
+    #
+    # for thedate in dates:
+    #     # to datetime as string
+    #     date = str(thedate.date())
+    #
+    #     # load neighbors
+    #     with open(path + "neighbors_D7_" + date + ".json") as f:
+    #         neighbors = json.load(f)
+    #
+    #     df_data = pd.read_csv(path + "data/station_5min_" + date + ".csv")
+    #     df_meta = pd.read_csv(path + "data/meta_2020-11-16.csv")
+    #     # df_meta = pd.read_csv(path + "data/meta_2020-05-23.csv")
+    #
+    #     # load i-210 data - don't need train or test for unsupervised
+    #     train_df_i210 = pd.read_csv(path + "processed_i210_train_" + date + ".csv", index_col=0)
+    #     train_df_i210.dropna(inplace=True)
+    #     test_df_i210 = pd.read_csv(path + "processed_i210_test_" + date + ".csv", index_col=0)
+    #     test_df_i210.dropna(inplace=True)
+    #     df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
+    #
+    #     # Load D7 data
+    #     df_D7 = pd.read_csv(path + "processed_D7_" + date + ".csv", index_col=0)
+    #     df_D7.dropna(inplace=True)
+    #
+    #     # run classification models
+    #     mis_ids_clf = train_classification(train_df_i210=train_df_i210,
+    #                                        test_df_i210=test_df_i210,
+    #                                        df_D7=df_D7,
+    #                                        df_date=date,
+    #                                        hyperparam_path='hyperparameters.json')
+    #
+    #     # plot
+    #     print("Saving classification plots for date "+ date)
+    #     save_plots(df_data=df_data,
+    #                df_meta=df_meta,
+    #                neighbors=neighbors,
+    #                misconfig_ids=mis_ids_clf,
+    #                path=path + 'results/classification_' + date)
+    #
+    #     # run unsupervised models
+    #     df_D7 = pd.read_csv(path + "predictions_D7_" + date + ".csv", index_col=0)
+    #
+    #     mis_ids_unsupervised = train_unsupervised(df_D7=df_D7,
+    #                                               df_i210=df_i210,
+    #                                               df_date=date)
+    #     print("Saving unsupervised plots for date " + date)
+    #     save_plots(df_data=df_data,
+    #                df_meta=df_meta,
+    #                neighbors=neighbors,
+    #                misconfig_ids=mis_ids_unsupervised,
+    #                path=path + 'results/unsupervised_' + date)
+    #
+    #     # store misconfigured IDs
+    #     common_ids = list(set(mis_ids_clf).intersection(mis_ids_unsupervised))
+    #     uncommon_ids = list(set(mis_ids_clf).symmetric_difference(
+    #         mis_ids_unsupervised))
+    #
+    #     mis_ids = {'classification': mis_ids_clf,
+    #                'unsupervised': mis_ids_unsupervised,
+    #                'common IDs': common_ids,
+    #                'uncommon': uncommon_ids}
+    #
+    #     # dump ids
+    #     with open('misconfigured_ids_' + date + '.json', 'w') as f:
+    #         json.dump(mis_ids, f, sort_keys=True, indent=4)
+    #
+    #     print("Completed training and testing of data for " + date)

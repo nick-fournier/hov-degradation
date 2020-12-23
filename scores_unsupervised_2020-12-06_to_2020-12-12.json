@@ -1,0 +1,6 @@
+{
+    "Isolation Forest": 0.7037037037037037,
+    "Local Outlier Factor": 0.8148148148148148,
+    "One-Class SVM": 0.6851851851851852,
+    "Robust covariance": 0.6296296296296297
+}
