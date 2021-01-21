@@ -45,13 +45,13 @@ if __name__ == '__main__':
         run.add_break()
     run.add_break(WD_BREAK.PAGE)
 
-    for dir in os.listdir(path + 'results/classification_' + dates):
+    for dir in os.listdir(path + 'results/unsupervised_' + dates):
         doc.add_heading('Sensor: ' + dir, level=1)
         para = doc.add_paragraph()
         run = para.add_run()
         run.add_break()
-        for img in os.listdir(path + 'results/classification_' + dates + '/' + dir):
-            run.add_picture(path + 'results/classification_' + dates + '/' + dir + '/' + img, width=Inches(3.4))
+        for img in os.listdir(path + 'results/unsupervised_' + dates + '/' + dir):
+            run.add_picture(path + 'results/unsupervised_' + dates + '/' + dir + '/' + img, width=Inches(3.4))
             run.add_break()
         run.add_break(WD_BREAK.PAGE)
 
