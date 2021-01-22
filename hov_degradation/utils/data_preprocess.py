@@ -34,7 +34,7 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, df_data, df_meta, location='D7', split=True):
+    def __init__(self, df_data, df_meta, location='5min', split=True):
         """
         # TODO
         """
@@ -464,7 +464,7 @@ if __name__ == '__main__':
 
     # District 7
     print("Pre-processing District 7 data...")
-    data_D7 = PreProcess(df_data, df_meta, location='D7', split=False)
+    data_D7 = PreProcess(df_data, df_meta, location='5min', split=False)
     df_D7, _, neighbors_D7 = data_D7.preprocess()
 
     print("Saving results...")
@@ -493,7 +493,7 @@ if __name__ == '__main__':
     #     df_test.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
     #
     #     # District 7
-    #     data = PreProcess(df_data, df_meta, location='D7', df_date=date, split=False)
+    #     data = PreProcess(df_data, df_meta, location='5min', df_date=date, split=False)
     #     df_D7, _, neighbors_D7 = data.preprocess()
     #     df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
     #     with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:

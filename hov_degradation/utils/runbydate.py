@@ -42,7 +42,7 @@ class RunByDate:
 if __name__ == '__main__':
 
     #print( os.listdir('../..') )
-    #os.mkdir("../../experiments/D7/data/")
+    #os.mkdir("../../experiments/5min/data/")
     data = RunByDate('2020-10-25', '2020-10-31').download()
 
 
@@ -56,7 +56,7 @@ if __name__ == '__main__':
     # df_test.to_csv(path[:-5] + "processed_i210_test.csv")
     #
     # # District 7
-    # data = PreProcess(df_data, df_meta, location='D7', split=False)
+    # data = PreProcess(df_data, df_meta, location='5min', split=False)
     # df_D7, _, neighbors_D7 = data.preprocess()
     # df_D7.to_csv(path[:-5] + "processed_D7.csv")
     # with open(path[:-5] + 'neighbors_D7.json', 'w') as f:

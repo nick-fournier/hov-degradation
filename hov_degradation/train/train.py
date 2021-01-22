@@ -78,7 +78,7 @@ def train_classification(train_df_i210,
     x_test_i210 = test_df_i210.drop(columns=['Type', 'y']).values
     y_test_i210 = test_df_i210['y'].values
 
-    # D7
+    # 5min
     x_D7 = df_D7.drop(columns=['Type', 'y']).values
 
     # classifiers
@@ -128,7 +128,7 @@ def train_classification(train_df_i210,
     clf = classifiers_map[best_model](**hyperparams[best_model])
     clf.fit(x_train_i210, y_train_i210)
 
-    # predict on D7
+    # predict on 5min
     y_pred_D7 = clf.predict(x_D7)
     df_D7['preds_classification'] = y_pred_D7
 
@@ -245,7 +245,7 @@ if __name__ == '__main__':
     test_df_i210.dropna(inplace=True)
     df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
 
-    # Load D7 data
+    # Load 5min data
     df_D7 = pd.read_csv(path + "processed_D7_" + date + ".csv", index_col=0)
     df_D7.dropna(inplace=True)
 
@@ -316,7 +316,7 @@ if __name__ == '__main__':
     #     test_df_i210.dropna(inplace=True)
     #     df_i210 = pd.concat([train_df_i210, test_df_i210], axis=0)
     #
-    #     # Load D7 data
+    #     # Load 5min data
     #     df_D7 = pd.read_csv(path + "processed_D7_" + date + ".csv", index_col=0)
     #     df_D7.dropna(inplace=True)
     #

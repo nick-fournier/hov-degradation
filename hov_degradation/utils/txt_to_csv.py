@@ -1,12 +1,12 @@
 import pandas as pd
 import os
 
-def txt2csv(inpath = "../../experiments/raw data/D7/", outpath = "../../experiments/district_7/data/"):
+def txt2csv(inpath, outpath):
     flist = pd.Series(os.listdir(inpath))
 
     # Load headers data
     # meta = pd.read_csv((inpath + flist[flist.str.contains("meta")]).to_string(index=False).strip())
-    headers = pd.read_csv(inpath + "headers.csv", index_col=0, header=0)
+    headers = pd.read_csv(inpath + "5min_headers.csv", index_col=0, header=0)
 
     # Filter file list
     flist = flist[flist.str.contains("station_5min_")]
@@ -27,4 +27,6 @@ def txt2csv(inpath = "../../experiments/raw data/D7/", outpath = "../../experime
 
 
 if __name__ == '__main__':
-    txt2csv()
+    # inpath = "../../experiments/raw data/5min/5min"
+    # outpath = "../../experiments/district_7/data/"
+    # txt2csv(inpath, outpath)
