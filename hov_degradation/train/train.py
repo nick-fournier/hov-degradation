@@ -262,7 +262,7 @@ if __name__ == '__main__':
 
     mis_ids = {'classification': mis_ids_clf,
                'unsupervised': mis_ids_unsupervised,
-               'common IDs': common_ids,
+               'common': common_ids,
                'uncommon': uncommon_ids}
 
     # dump ids
@@ -271,39 +271,11 @@ if __name__ == '__main__':
 
 
     ##### PLOT RESULTS #####
-    from hov_degradation.utils.plot import PlotMisconfigs
-    path = 'experiments/district_7/'
-    dates = '2020-12-06_to_2020-12-12'
+    # from hov_degradation.utils.plot import PlotMisconfigs
+    # path = 'experiments/district_7/'
+    # dates = '2020-12-06_to_2020-12-12'
     plots = PlotMisconfigs(path=path, plot_date="2020-12-09", data_dates=dates)
-
     plots.save_plots()
-
-
-
-
-
-
-    # Load sensor data for plots, use wednesday
-    df_data = pd.read_csv(path + "data/station_5min_2020-12-09.csv")
-    df_meta = pd.read_csv(path + "data/meta_2020-11-16.csv")
-
-    # plot
-    print("Saving classification plots for date " + dates)
-    save_plots(df_data=df_data,
-               df_meta=df_meta,
-               neighbors=neighbors,
-               misconfig_ids=mis_ids_clf,
-               path=path + 'results/classification_' + dates)
-
-
-    print("Saving unsupervised plots for date " + date)
-    save_plots(df_data=df_data,
-               df_meta=df_meta,
-               neighbors=neighbors,
-               misconfig_ids=mis_ids_unsupervised,
-               path=path + 'results/unsupervised_' + dates)
-
-
 
 
     # Aggregate results
