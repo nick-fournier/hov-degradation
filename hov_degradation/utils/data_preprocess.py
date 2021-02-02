@@ -34,20 +34,27 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, df_data, df_meta, location='5min', split=True):
+    def __init__(self, path, start_date, end_date):
         """
         # TODO
         """
-        self.df_data = df_data
-        self.df_meta = df_meta
-        self.location = location
-        self.split = split
+        self.dates = pd.date_range(start_date, end_date)
+        self.path = path
         # self.date = pd.to_datetime(df_date).strftime("%m/%d/%Y") #Reformats to month day year to match PeMS
 
         self.df_merge = None
         self.processed_data = None
 
-    def preprocess(self):
+        self.df_meta = pd.read_csv(self.path + "meta_2020-11-16.csv")
+        self.df_data = pd.DataFrame()
+
+        for d in self.dates:
+            date = str(d.date())
+            print("Importing station_5min_" + date + ".csv...")
+            df_data_new = pd.read_csv(self.path + "station_5min_" + date + ".csv", header=0)
+            self.df_data = self.df_data.append(df_data_new, ignore_index=True)
+
+    def preprocess(self, location='5min', split=True):
         """ #TODO yf
 
         Parameters
@@ -58,16 +65,16 @@ class PreProcess:
 
         """
         # filter I-210, 134, and 605 stations
-        if self.location == 'i210':
+        if location == 'i210':
             df_meta_filtered = pd.DataFrame(columns=self.df_meta.columns)
             for fway, value in FREEWAYS.items():
-                fway_meta = df_meta[(df_meta['Fwy'] == fway) &
-                                    (df_meta['Abs_PM'] >= value['range_min']) &
-                                    (df_meta['Abs_PM'] <= value['range_max'])]
+                fway_meta = self.df_meta[(self.df_meta['Fwy'] == fway) &
+                                         (self.df_meta['Abs_PM'] >= value['range_min']) &
+                                         (self.df_meta['Abs_PM'] <= value['range_max'])]
                 df_meta_filtered = pd.concat([df_meta_filtered, fway_meta],
                                              axis=0)
         else:
-            df_meta_filtered = df_meta
+            df_meta_filtered = self.df_meta
 
         # filter, only keep HOV and mainline
         df_meta_filtered = df_meta_filtered[df_meta_filtered.Type.isin(['ML',
@@ -83,7 +90,7 @@ class PreProcess:
             self.df_merge.ID.isin(usable[usable].index)]
 
         # apply misconfiguration, swap Flow and Occupancy of some HOVs with MLs
-        if self.location == 'i210':
+        if location == 'i210':
             self.apply_misconfiguration(ratio=0.30)
 
         # get pivot based on Flow - Filter based on usable stations
@@ -117,7 +124,7 @@ class PreProcess:
 
         # get target
         target = df_group_id[
-            'misconfigured'] if self.location == 'i210' else -1
+            'misconfigured'] if location == 'i210' else -1
 
         self.processed_data = pd.DataFrame(
             index=sorted_stations,
@@ -142,7 +149,7 @@ class PreProcess:
             self.processed_data.Type == 'HV']
 
         # split test and train
-        if self.split:
+        if split:
             df_train, df_test = self.split_data(self.processed_data)
         else:
             df_train = self.processed_data
@@ -442,41 +449,31 @@ class PreProcess:
 
 if __name__ == '__main__':
 
-    start_date = '2020-12-06'
-    end_date = '2020-12-12'
+    # Import the data
+    PP = PreProcess(path="../../experiments/district_7/data/",
+                             start_date='2020-12-06',
+                             end_date='2020-12-12')
 
-    path = "../../experiments/district_7/data/"
-    dates = pd.date_range(start_date, end_date)
-
-    df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
-    df_data = pd.DataFrame()
-
-    for thedate in dates:
-        date = str(thedate.date())
-        print("Importing station_5min_" + date + ".csv...")
-        df_data_new = pd.read_csv(path + "station_5min_" + date + ".csv", header=0)
-        df_data = df_data.append(df_data_new, ignore_index=True)
 
     print("Pre-processing I-210 test/train data...")
     # I210
-    data_i210 = PreProcess(df_data, df_meta, location='i210')
-    train_i210, test_i210, neighbors_i210 = data_i210.preprocess()
+    train_i210, test_i210, neighbors_i210 = PP.preprocess(location='i210')
 
     # District 7
     print("Pre-processing District 7 data...")
-    data_D7 = PreProcess(df_data, df_meta, location='5min', split=False)
-    df_D7, _, neighbors_D7 = data_D7.preprocess()
+    df_D7, _, neighbors_D7 = PP.preprocess(location='5min', split=False)
 
     print("Saving results...")
     # I210
-    train_i210.to_csv(path[:-5] + "processed_i210_train_" + start_date + "_to_" + end_date + ".csv")
-    test_i210.to_csv(path[:-5] + "processed_i210_test_" + start_date + "_to_" + end_date + ".csv")
+    train_i210.to_csv(PP.path[:-5] + "processed_i210_train_" + PP.start_date + "_to_" + PP.end_date + ".csv")
+    test_i210.to_csv(PP.path[:-5] + "processed_i210_test_" + PP.start_date + "_to_" + PP.end_date + ".csv")
 
     # District 7
-    df_D7.to_csv(path[:-5] + "processed_D7_" + start_date + "_to_" + end_date + ".csv")
-    with open(path[:-5] + "neighbors_D7_" + start_date + "_to_" + end_date + ".json", 'w') as f:
+    df_D7.to_csv(PP.path[:-5] + "processed_D7_" + PP.start_date + "_to_" + PP.end_date + ".csv")
+    with open(PP.path[:-5] + "neighbors_D7_" + PP.start_date + "_to_" + PP.end_date + ".json", 'w') as f:
         json.dump(neighbors_D7, f, sort_keys=True, indent=4)
     print("Done")
+
     #### Loop for individual dates ####
     ###################################
     # dates = pd.date_range(start_date, end_date)

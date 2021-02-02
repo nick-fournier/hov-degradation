@@ -28,3 +28,14 @@ If the setup.py installations fails, install the contents using pip
 ```bash
 pip install -e .
 ```
+
+## Usage
+#### 1. data_prerocess.py
+   This preprocesses the data for training. Requires path to the data and the start/end dates of the data.
+   
+2. train.py
+3. plot.py 
+4. agg_results.py 
+5. degraded.py
+
+
