@@ -5,15 +5,15 @@ import json
 from collections import Counter
 
 
-def agg_scores(df_dates):
+def agg_scores(path, dates):
     scores = pd.DataFrame()
     for thedate in dates:
         date = str(thedate.date())
         # Load em
-        new_classif = pd.read_json('scores_classification_' + date + ".json", orient='index')
+        new_classif = pd.read_json(path + 'scores_classification_' + date + ".json", orient='index')
         new_classif['Type'] = 'Classification'
 
-        new_unsuper = pd.read_json('scores_unsupervised_' + date + ".json", typ='series')
+        new_unsuper = pd.read_json(path + 'scores_unsupervised_' + date + ".json", typ='series')
         new_unsuper = pd.DataFrame({'train': np.nan, 'test': new_unsuper})
         new_unsuper['Type'] = 'Unsupervised'
 
@@ -48,21 +48,21 @@ def agg_scores(df_dates):
     datestring = str(dates.min().date()) + "_to_" + str(dates.max().date())
 
     # scores.to_csv('scores_classification_' + datestring + '.csv')
-    scores.to_csv('scores_classification_' + datestring + '.csv', index=False)
-    agg_scores.to_csv('agg_scores_classification_' + datestring + '.csv', index=False)
+    scores.to_csv(path + 'scores_classification_' + datestring + '.csv', index=False)
+    agg_scores.to_csv(path + 'agg_scores_classification_' + datestring + '.csv', index=False)
 
     out = agg_scores.to_json(orient='index')
     parsed = json.loads(out)
-    with open('agg_scores_classification_' + datestring + '.json', 'w') as f:
+    with open(path + 'agg_scores_classification_' + datestring + '.json', 'w') as f:
         json.dump(parsed, f, sort_keys=True, indent=4)
 
 
-def agg_misconfigs(df_dates):
+def agg_misconfigs(path, dates):
     misconfig_classif = []
     misconfig_unsuper = []
     for thedate in dates:
         date = str(thedate.date())
-        with open('misconfigured_ids_' + date + '.json') as f:
+        with open(path + 'misconfigured_ids_' + date + '.json') as f:
             new_misconfig = json.load(f)
 
         misconfig_classif.extend(new_misconfig['classification'])
@@ -80,11 +80,11 @@ def agg_misconfigs(df_dates):
 
     # Save
     datestring = str(dates.min().date()) + "_to_" + str(dates.max().date())
-    misconfig_ids.to_csv('misconfigured_ids_frequency' + datestring + '.csv', index=False)
+    misconfig_ids.to_csv(path + 'misconfigured_ids_frequency' + datestring + '.csv', index=False)
 
 
 if __name__ == '__main__':
-    dates = pd.date_range('2020-10-25', '2020-10-31')
+    the_dates = pd.date_range('2020-10-25', '2020-10-31')
 
-    agg_scores(dates)
-    agg_misconfigs(dates)
+    agg_scores(path="../../hov_degradation/", dates=the_dates)
+    agg_misconfigs(path="../../hov_degradation/", dates=the_dates)
