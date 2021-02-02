@@ -30,11 +30,15 @@ pip install -e .
 ```
 
 ## Usage
-#### 1. data_prerocess.py
-   This preprocesses the data for training. Requires path to the data and the start/end dates of the data.
+#### 1. util/data_prerocess.py
+This preprocesses the data for training. Requires file path and the start/end dates for the data.
    
-2. train.py
-3. plot.py 
+#### 2. train/train.py
+Trains the data and then tests it for I-210, and runs it for entire D7.
+
+#### 3. util/plot.py
+Plots the identified misconfigurations in D7.
+
 4. agg_results.py 
 5. degraded.py
 

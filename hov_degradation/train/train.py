@@ -18,6 +18,8 @@ from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
 from sklearn.metrics import accuracy_score
 
 from hov_degradation.utils.plot import save_plots
+from hov_degradation.utils.agg_results import agg_misconfigs
+from hov_degradation.utils.agg_results import agg_scores
 from hov_degradation.models.classifiers.neural_net import FeedForwardClassifier
 
 
@@ -218,7 +220,6 @@ def train_unsupervised(df_D7, df_i210, df_date):
 if __name__ == '__main__':
     # load processed data
     path = "../../experiments/district_7/"
-    # path = "C:/gitclones/connected-corridors/hov-degradation/experiments/district_7/"
     start_date = '2020-12-06'
     end_date = '2020-12-12'
     date = start_date + "_to_" + end_date
@@ -230,13 +231,6 @@ if __name__ == '__main__':
     # Load sensor data for plots, use wednesday
     df_data = pd.read_csv(path + "data/station_5min_2020-12-09.csv")
     df_meta = pd.read_csv(path + "data/meta_2020-11-16.csv")
-
-    # df_data = pd.DataFrame()
-    # for thedate in dates:
-    #     date = str(thedate.date())
-    #     print("Importing station_5min_" + date + ".csv...")
-    #     df_data_new = pd.read_csv(path + "data/station_5min_" + date + ".csv", header=0)
-    #     df_data = df_data.append(df_data_new, ignore_index=True)
 
     # load i-210 data - don't need train or test for unsupervised
     train_df_i210 = pd.read_csv(path + "processed_i210_train_" + date + ".csv", index_col=0)
@@ -256,6 +250,8 @@ if __name__ == '__main__':
                                        df_date=date,
                                        hyperparam_path='hyperparameters.json')
 
+
+    ##### PLOT RESULTS #####
     # plot
     print("Saving classification plots for date "+ date)
     save_plots(df_data=df_data,
@@ -290,6 +286,11 @@ if __name__ == '__main__':
     # dump ids
     with open('misconfigured_ids_' + date + '.json', 'w') as f:
         json.dump(mis_ids, f, sort_keys=True, indent=4)
+
+
+    # Aggregate results
+    agg_scores(path="../../hov_degradation/", dates=date)
+    agg_misconfigs(path="../../hov_degradation/", dates=date)
 
     print("Completed training and testing of data for " + date)
 

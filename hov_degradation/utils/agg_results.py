@@ -82,9 +82,3 @@ def agg_misconfigs(path, dates):
     datestring = str(dates.min().date()) + "_to_" + str(dates.max().date())
     misconfig_ids.to_csv(path + 'misconfigured_ids_frequency' + datestring + '.csv', index=False)
 
-
-if __name__ == '__main__':
-    the_dates = pd.date_range('2020-10-25', '2020-10-31')
-
-    agg_scores(path="../../hov_degradation/", dates=the_dates)
-    agg_misconfigs(path="../../hov_degradation/", dates=the_dates)

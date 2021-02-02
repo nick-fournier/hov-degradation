@@ -2,6 +2,8 @@
 import matplotlib.pyplot as plt
 import os
 
+def get_data():
+    pass
 
 def save_plots(df_data, df_meta, neighbors, misconfig_ids, path):
     """
