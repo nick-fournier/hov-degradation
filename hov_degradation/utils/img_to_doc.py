@@ -8,7 +8,7 @@ from docx.shared import Inches
 
 def aggregate_results(path):
     df_meta = pd.read_csv(path + "data/meta_2020-11-16.csv")
-    df_pred = pd.read_csv(path + 'predictions_D7_' + dates + '.csv')
+    df_pred = pd.read_csv(path + 'results/predictions_D7_' + dates + '.csv')
 
     total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
     analyzed = df_pred.iloc[:, 0].count()
@@ -25,13 +25,16 @@ def aggregate_results(path):
     return res
 
 if __name__ == '__main__':
-    path = "../../experiments/district_7/"
+    path = '../../experiments/district_7/'
+    plotpath = 'results/misconfig_plots_'
     start_date = '2020-12-06'
     end_date = '2020-12-12'
     dates = start_date + '_to_' + end_date
 
+    # get some meta data
     agg_results = aggregate_results(path)
 
+    # Set up the empty doc
     doc = Document()
 
     para = doc.add_paragraph()
@@ -45,15 +48,17 @@ if __name__ == '__main__':
         run.add_break()
     run.add_break(WD_BREAK.PAGE)
 
-    for dir in os.listdir(path + 'results/unsupervised_' + dates):
+    for dir in os.listdir(path + plotpath + dates):
         doc.add_heading('Sensor: ' + dir, level=1)
         para = doc.add_paragraph()
         run = para.add_run()
         run.add_break()
-        for img in os.listdir(path + 'results/unsupervised_' + dates + '/' + dir):
-            run.add_picture(path + 'results/unsupervised_' + dates + '/' + dir + '/' + img, width=Inches(3.4))
+        for img in os.listdir(path + plotpath + dates + '/' + dir):
+            run.add_picture(path + plotpath + dates + '/' + dir + '/' + img, width=Inches(6))
             run.add_break()
+        run.add_text('Comments:')
+        run.add_break()
         run.add_break(WD_BREAK.PAGE)
 
 
-    doc.save(path + '/results/HOV Deg Results Draft (2021_01_19).docx')
+    doc.save(path + '/results/HOV Deg Results Draft (2021_02_02).docx')

@@ -271,9 +271,6 @@ if __name__ == '__main__':
 
 
     ##### PLOT RESULTS #####
-    # from hov_degradation.utils.plot import PlotMisconfigs
-    # path = 'experiments/district_7/'
-    # dates = '2020-12-06_to_2020-12-12'
     plots = PlotMisconfigs(path=path, plot_date="2020-12-09", data_dates=dates)
     plots.save_plots()
 

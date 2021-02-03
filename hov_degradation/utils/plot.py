@@ -89,39 +89,39 @@ class PlotMisconfigs:
 
             plt.ioff()  # Turns of interative plot display.
 
-            #### Combo plot ####
-            plt.figure(figsize=(8, 4))
-            plt.plot(colors=colors)
-            plt.rc('font', size=8)
-            plt.suptitle("Comparison of HOV sensor: {} on ".format(mis_id, date_string))
-            plt.title("Predicted by" + this_method + " method")
-            plt.xlabel('Time')
-            plt.xticks([])
-            plt.ylabel('Flow')
-            plt.ylim(0, 250)
-            for n in range(1, main_num_lanes + 1):
-                plt.plot(_df_main['Timestamp'], _df_main['Lane {} Flow'.format(n)],
-                         linewidth=0.75, linestyle='dotted', label='Mainline lane: {}'.format(n))
-            plt.plot(_df_up['Timestamp'], _df_up['Flow'],
-                     linewidth=0.5, label='Upstream: {}'.format(up_neighbor))
-            plt.plot(_df_down['Timestamp'], _df_down['Flow'],
-                     linewidth=0.5, label='Uownstream: {}'.format(down_neighbor))
-            plt.plot(_df['Timestamp'], _df['Flow'],
-                     color='black', label='HOV sensor: {}'.format(mis_id))
-            plt.legend()
-            plt.savefig(outdir + '/{}_combo.png'.format(mis_id), dpi=500)
-            plt.close()
+            # #### Combo plot ####
+            # plt.figure(figsize=(8, 4))
+            # plt.plot(colors=colors)
+            # plt.rc('font', size=8)
+            # plt.suptitle("Comparison of HOV sensor: {} on {}".format(mis_id, date_string))
+            # plt.title("Predicted by" + this_method + " method")
+            # plt.xlabel('Time')
+            # plt.xticks([])
+            # plt.ylabel('Flow')
+            # plt.ylim(0, 250)
+            # for n in range(1, main_num_lanes + 1):
+            #     plt.plot(_df_main['Timestamp'], _df_main['Lane {} Flow'.format(n)],
+            #              linewidth=0.75, linestyle='dotted', label='Mainline lane: {}'.format(n))
+            # plt.plot(_df_up['Timestamp'], _df_up['Flow'],
+            #          linewidth=0.5, label='Upstream: {}'.format(up_neighbor))
+            # plt.plot(_df_down['Timestamp'], _df_down['Flow'],
+            #          linewidth=0.5, label='Uownstream: {}'.format(down_neighbor))
+            # plt.plot(_df['Timestamp'], _df['Flow'],
+            #          color='black', label='HOV sensor: {}'.format(mis_id))
+            # plt.legend()
+            # plt.savefig(outdir + '/{}_combo.png'.format(mis_id), dpi=500)
+            # plt.close()
 
             ####  Longitudinal plot (up vs down) ####
             plt.figure(figsize=(8, 4))
             plt.plot(colors=colors)
             plt.rc('font', size=8)
-            plt.suptitle("Longitudinal comparison of HOV sensor: {} on ".format(mis_id, date_string))
+            plt.suptitle("Longitudinal comparison of HOV sensor: {} on {}".format(mis_id, date_string))
             plt.title("Predicted by" + this_method + " method")
             plt.xlabel('Time')
             plt.xticks([])
             plt.ylabel('Flow')
-            plt.ylim(0, 250)
+            # plt.ylim(0, 250)
             plt.plot(_df_up['Timestamp'], _df_up['Flow'],
                      alpha=0.5, linewidth=0.5, label='Upstream: {}'.format(up_neighbor))
             plt.plot(_df_down['Timestamp'], _df_down['Flow'],
@@ -136,12 +136,12 @@ class PlotMisconfigs:
             plt.figure(figsize=(8, 4))
             plt.plot(colors=colors)
             plt.rc('font', size=8)
-            plt.suptitle("Lateral comparison of HOV sensor: {} on ".format(mis_id, date_string))
+            plt.suptitle("Lateral comparison of HOV sensor: {} on {}".format(mis_id, date_string))
             plt.title("Predicted by" + this_method + " method")
             plt.xlabel('Time')
             plt.xticks([])
             plt.ylabel('Flow')
-            plt.ylim(0, 250)
+            # plt.ylim(0, 250)
             for n in range(1, main_num_lanes + 1):
                 plt.plot(_df_main['Timestamp'], _df_main['Lane {} Flow'.format(n)],
                          alpha=0.5, linewidth=0.75, label='Mainline lane: {}'.format(n))
@@ -150,3 +150,10 @@ class PlotMisconfigs:
             plt.legend()
             plt.savefig(outdir + '/{}_lat.png'.format(mis_id), dpi=500)
             plt.close()
+
+if __name__ == '__main__':
+    path = 'experiments/district_7/'
+    dates = '2020-12-06_to_2020-12-12'
+
+    plots = PlotMisconfigs(path=path, plot_date="2020-12-09", data_dates=dates)
+    plots.save_plots()
