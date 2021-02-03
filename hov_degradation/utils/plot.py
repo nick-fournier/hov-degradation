@@ -6,9 +6,6 @@ import json
 from cycler import cycler
 from palettable.colorbrewer.qualitative import Set1_7
 
-def cm_to_inch(value):
-    return value/2.54
-
 class PlotMisconfigs:
 
     def __init__(self, path, plot_date, data_dates):
@@ -18,7 +15,8 @@ class PlotMisconfigs:
         self.data = None
         self.meta = None
         self.neighbors = None
-        self.misconfig_ids = None
+        self.dict_mis_ids = None
+        self.df_mis_ids = None
         self.get_data()
 
     def get_data(self):
@@ -32,45 +30,65 @@ class PlotMisconfigs:
             self.neighbors = json.load(f)
 
         with open(self.path + "results/misconfigured_ids_D7_" + self.data_dates + ".json") as f:
-            self.misconfig_ids = json.load(f)
+            self.dict_mis_ids = json.load(f)
+
+        # Get unique predictions
+        mis_ids_unique = self.dict_mis_ids['classification'] + self.dict_mis_ids['unsupervised']
+        mis_ids_unique = pd.Series(mis_ids_unique).sort_values().unique().tolist()
+
+        # Create nice data frame
+        self.df_mis_ids = pd.DataFrame()
+        for id in mis_ids_unique:
+            method = [m for m in ['classification', 'unsupervised'] if id in self.dict_mis_ids[m]]
+            method = ' & '.join(method)
+            self.df_mis_ids = self.df_mis_ids.append(pd.DataFrame({'id': [id], 'method': [method]}))
 
         print("Done")
 
+    # Blah we don't need this right now
+    def get_onramps(self):
+        # df_group_id = self.meta.groupby('ID').first()   # All sensors
+        # df_bad_id = df_group_id[df_group_id.index.isin(self.df_mis_ids['id'])]  # Only misconfigured sensors
+        #
+        # # Find sensors that are between
+        # ramp_id = []
+        # for i, _id in enumerate(df_bad_id.index):
+        #     id_up = self.neighbors[str(_id)]['up']
+        #     id_down = self.neighbors[str(_id)]['down']
+        #     pm_up = float(df_group_id[df_group_id.index == id_up]['Abs_PM'])
+        #     pm_down = float(df_group_id[df_group_id.index == id_down]['Abs_PM'])
+        #
+        #     f_fwy = df_group_id['Fwy'] == df_bad_id['Fwy'].loc[_id]
+        #     f_dir = df_group_id['Dir'] == df_bad_id['Dir'].loc[_id]
+        #     f_between = df_group_id['Abs_PM'].between(pm_up, pm_down, inclusive=False) | \
+        #                 df_group_id['Abs_PM'].between(pm_down, pm_up, inclusive=False)
+        #     f_ramp = df_group_id['Type'] == 'OR'
+        #
+        #     ramp_id.append(df_group_id[f_fwy & f_dir & f_between & f_ramp].index[0])
+        #
+        #
+        # df_neighbors = pd.DataFrame({'bad_HOV': df_bad_id.index.to_list(),
+        #                              'neighbor_ML': ramp_id})
+        # df_neighbors = df_neighbors.merge(self.misconfig_ids, left_on='bad_HOV', right_on='ID').drop(columns='ID')
+        #
+        # # self.neighbors = df_neighbors
+        # return df_neighbors
+        pass
+
+    def strip_map(self):
+        pass
+
     def save_plots(self):
-        """
-        Parameters
-        ----------
-        df_data :
-        df_meta :
-        neighbors :
-        misconfig_ids :
-        path :
-
-        Returns
-        -------
-        """
-
-        # Get unique predictions
-        mis_ids_unique = self.misconfig_ids['classification'] + self.misconfig_ids['unsupervised']
-        mis_ids_unique = pd.Series(mis_ids_unique).sort_values().unique().tolist()
-
+        # Plot each prediction
         date_string = pd.to_datetime(self.plot_date).day_name() + ', ' + self.plot_date
         colors = Set1_7.mpl_colors
 
-        # Create nice data frame
-        df_mis_id = pd.DataFrame()
-        for id in mis_ids_unique:
-            method = [m for m in ['classification', 'unsupervised'] if id in self.misconfig_ids[m]]
-            method = ' & '.join(method)
-            df_mis_id = df_mis_id.append(pd.DataFrame({'id': [id], 'method': [method]}))
-
-
-        for mis_id in mis_ids_unique:
+        for mis_id in list(self.df_mis_ids['id']):
             # neighbors
             up_neighbor = self.neighbors[str(mis_id)]['up']
             down_neighbor = self.neighbors[str(mis_id)]['down']
             main_neighbor = self.neighbors[str(mis_id)]['main']
-            this_method = df_mis_id[df_mis_id['id'] == mis_id].method.to_string(index=False)
+            this_method = self.df_mis_ids[self.df_mis_ids['id'] == mis_id].method.to_string(index=False)
 
             # number of lanes in the main line
             main_num_lanes = self.meta[self.meta['ID'] == main_neighbor]['Lanes'].iloc[0]
@@ -152,6 +170,7 @@ class PlotMisconfigs:
             plt.close()
 
 if __name__ == '__main__':
+    path = '../../experiments/district_7/'
     path = 'experiments/district_7/'
     dates = '2020-12-06_to_2020-12-12'
 
