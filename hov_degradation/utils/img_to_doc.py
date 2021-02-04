@@ -59,14 +59,14 @@ class PlotsToDocx:
             docx.add_heading('Sensor: ' + id_dir, level=2)
             para = docx.add_paragraph()
             run = para.add_run()
-            run.add_break()
+            # run.add_break()
 
             for img in os.listdir(doc_path + plot_path + self.dates + '/' + id_dir):
-                run.add_picture(doc_path + plot_path + self.dates + '/' + id_dir + '/' + img, width=Inches(6))
-                run.add_break()
-
+                run.add_picture(doc_path + plot_path + self.dates + '/' + id_dir + '/' + img, height=Inches(3))
+                # run.add_break()
+            run.add_break()
             run.add_picture(doc_path + strip_path + id_dir + "_strip.png", width=Inches(6))
-            # run.add_text('Comments:')
+            run.add_text('Comments:')
             run.add_break()
             run.add_break(WD_BREAK.PAGE)
 

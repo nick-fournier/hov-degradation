@@ -78,7 +78,7 @@ class PlotMisconfigs:
 
     def save_plots(self):
         # Plot each prediction
-        date_string = pd.to_datetime(self.plot_date).day_name() + ', ' + self.plot_date
+        date_string = pd.to_datetime(self.plot_date).day_name()[0:3] + self.plot_date
         colors = Set1_7.mpl_colors
 
         for c, mis_id in enumerate(list(self.df_mis_ids['id'])):
@@ -128,14 +128,14 @@ class PlotMisconfigs:
             # plt.plot(_df['Timestamp'], _df['Flow'],
             #          color='black', label='HOV sensor: {}'.format(mis_id))
             # plt.legend()
-            # plt.savefig(outdir + '/{}_combo.png'.format(mis_id), dpi=500)
+            # plt.savefig(outdir + '/{}_combo.png'.format(mis_id), dpi=300, bbox_inches='tight')
             # plt.close()
 
             ####  Longitudinal plot (up vs down) ####
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(5, 5))
             plt.plot(colors=colors)
             plt.rc('font', size=8)
-            plt.suptitle("Longitudinal comparison of HOV sensor: {} on {}".format(mis_id, date_string))
+            plt.suptitle("Longitudinal comparison of {} for {}".format(mis_id, date_string))
             plt.title("Predicted by" + this_method + " method")
             plt.xlabel('Time')
             plt.xticks([])
@@ -148,14 +148,14 @@ class PlotMisconfigs:
             plt.plot(_df['Timestamp'], _df['Flow'],
                      color='black', label='HOV sensor: {}'.format(mis_id))
             plt.legend()
-            plt.savefig(outdir + '/{}_long.png'.format(mis_id), dpi=500)
+            plt.savefig(outdir + '/{}_long.png'.format(mis_id), dpi=300, bbox_inches='tight')
             plt.close()
 
             #### Lateral plot (HOV vs mainline) ####
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(5, 5))
             plt.plot(colors=colors)
             plt.rc('font', size=8)
-            plt.suptitle("Lateral comparison of HOV sensor: {} on {}".format(mis_id, date_string))
+            plt.suptitle("Lateral comparison of {} for {}".format(mis_id, date_string))
             plt.title("Predicted by" + this_method + " method")
             plt.xlabel('Time')
             plt.xticks([])
@@ -167,7 +167,7 @@ class PlotMisconfigs:
             plt.plot(_df['Timestamp'], _df['Flow'],
                      color='black', label='HOV sensor: {}'.format(mis_id))
             plt.legend()
-            plt.savefig(outdir + '/{}_lat.png'.format(mis_id), dpi=500)
+            plt.savefig(outdir + '/{}_lat.png'.format(mis_id), dpi=300, bbox_inches='tight')
             plt.close()
 
 if __name__ == '__main__':
