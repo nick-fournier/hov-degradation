@@ -39,12 +39,12 @@ class PlotsToDocx:
 
     def img_to_doc(self):
         # Set up the empty doc
-        docx = Document()
+        doc = Document()
 
         plot_path = 'results/misconfig_plots_'
         strip_path = 'results/strip_maps/'
 
-        para = docx.add_paragraph()
+        para = doc.add_paragraph()
         run = para.add_run()
         font = run.font
         font.name = 'Calibri'
@@ -56,11 +56,12 @@ class PlotsToDocx:
         run.add_break(WD_BREAK.PAGE)
 
         for id_dir in os.listdir(doc_path + plot_path + self.dates):
-            docx.add_heading('Sensor: ' + id_dir, level=2)
-            para = docx.add_paragraph()
+            doc.add_heading('Sensor: ' + id_dir, level=2)
+            para = doc.add_paragraph()
             run = para.add_run()
+            font.name = 'Calibri'
+            font = run.font
             # run.add_break()
-
             for img in os.listdir(doc_path + plot_path + self.dates + '/' + id_dir):
                 run.add_picture(doc_path + plot_path + self.dates + '/' + id_dir + '/' + img, height=Inches(3))
                 # run.add_break()
@@ -70,7 +71,7 @@ class PlotsToDocx:
             run.add_break()
             run.add_break(WD_BREAK.PAGE)
 
-        return docx
+        return doc
 
 if __name__ == '__main__':
     doc_path = '../../experiments/district_7/'

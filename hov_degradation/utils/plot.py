@@ -78,7 +78,7 @@ class PlotMisconfigs:
 
     def save_plots(self):
         # Plot each prediction
-        date_string = pd.to_datetime(self.plot_date).day_name()[0:3] + self.plot_date
+        date_string = pd.to_datetime(self.plot_date).day_name()[0:3] + ' ' + self.plot_date
         colors = Set1_7.mpl_colors
 
         for c, mis_id in enumerate(list(self.df_mis_ids['id'])):
