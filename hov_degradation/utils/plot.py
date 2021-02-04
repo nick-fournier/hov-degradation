@@ -43,8 +43,6 @@ class PlotMisconfigs:
             method = ' & '.join(method)
             self.df_mis_ids = self.df_mis_ids.append(pd.DataFrame({'id': [id], 'method': [method]}))
 
-        print("Done")
-
     # Blah we don't need this right now
     def get_onramps(self):
         # df_group_id = self.meta.groupby('ID').first()   # All sensors
@@ -83,7 +81,10 @@ class PlotMisconfigs:
         date_string = pd.to_datetime(self.plot_date).day_name() + ', ' + self.plot_date
         colors = Set1_7.mpl_colors
 
-        for mis_id in list(self.df_mis_ids['id']):
+        for c, mis_id in enumerate(list(self.df_mis_ids['id'])):
+
+            count = str(c + 1) + '/' + str(len(self.df_mis_ids))
+            print('Plotting misconfigured VDS ' + str(mis_id) + ' plot ' + count)
             # neighbors
             up_neighbor = self.neighbors[str(mis_id)]['up']
             down_neighbor = self.neighbors[str(mis_id)]['down']
@@ -123,7 +124,7 @@ class PlotMisconfigs:
             # plt.plot(_df_up['Timestamp'], _df_up['Flow'],
             #          linewidth=0.5, label='Upstream: {}'.format(up_neighbor))
             # plt.plot(_df_down['Timestamp'], _df_down['Flow'],
-            #          linewidth=0.5, label='Uownstream: {}'.format(down_neighbor))
+            #          linewidth=0.5, label='Downstream: {}'.format(down_neighbor))
             # plt.plot(_df['Timestamp'], _df['Flow'],
             #          color='black', label='HOV sensor: {}'.format(mis_id))
             # plt.legend()
@@ -143,7 +144,7 @@ class PlotMisconfigs:
             plt.plot(_df_up['Timestamp'], _df_up['Flow'],
                      alpha=0.5, linewidth=0.5, label='Upstream: {}'.format(up_neighbor))
             plt.plot(_df_down['Timestamp'], _df_down['Flow'],
-                     alpha=0.5, linewidth=0.5, label='Uownstream: {}'.format(down_neighbor))
+                     alpha=0.5, linewidth=0.5, label='Downstream: {}'.format(down_neighbor))
             plt.plot(_df['Timestamp'], _df['Flow'],
                      color='black', label='HOV sensor: {}'.format(mis_id))
             plt.legend()
@@ -170,8 +171,8 @@ class PlotMisconfigs:
             plt.close()
 
 if __name__ == '__main__':
+    # path = 'experiments/district_7/'
     path = '../../experiments/district_7/'
-    path = 'experiments/district_7/'
     dates = '2020-12-06_to_2020-12-12'
 
     plots = PlotMisconfigs(path=path, plot_date="2020-12-09", data_dates=dates)

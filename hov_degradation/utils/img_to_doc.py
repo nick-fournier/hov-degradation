@@ -1,5 +1,7 @@
 import pandas as pd
 import os
+
+from datetime import date
 from docx import Document
 from docx.enum.text import WD_BREAK
 from docx.shared import Pt
@@ -13,7 +15,10 @@ class PlotsToDocx:
         self.dates = start_date + '_to_' + end_date
         self.agg_results = self.aggregate_results()
         self.docx = self.img_to_doc()
-        self.docx.save(self.path + '/results/HOV Deg Results Draft (2021_02_02).docx')
+
+        self.docx.save(self.path + '/results/HOV Deg Results Draft_' + str(date.today()) + '.docx')
+
+
 
     def aggregate_results(self):
         df_meta = pd.read_csv(self.path + "data/meta_2020-11-16.csv")
@@ -26,7 +31,7 @@ class PlotsToDocx:
 
         res = {'Total HOVs': total,
                'Analyzed HOVs': analyzed,
-               'Identified Misconfiguations (unsupervised)': pred_unsup,
+               'Identified Misconfigurations (unsupervised)': pred_unsup,
                'Identified Misconfigurations (supervised)': pred_sup,
                'Analysis date': start_date + " to " + end_date}
 
@@ -51,7 +56,7 @@ class PlotsToDocx:
         run.add_break(WD_BREAK.PAGE)
 
         for id_dir in os.listdir(doc_path + plot_path + self.dates):
-            docx.add_heading('Sensor: ' + id_dir, level=1)
+            docx.add_heading('Sensor: ' + id_dir, level=2)
             para = docx.add_paragraph()
             run = para.add_run()
             run.add_break()
