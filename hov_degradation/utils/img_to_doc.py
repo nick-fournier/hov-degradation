@@ -92,8 +92,9 @@ class PlotsToDocx:
             run = para.add_run()
             font.name = 'Calibri'
             font = run.font
-            run.add_text(self.mis_id_text[int(id_dir)] + 'Plotted using data for {}'.format(date_string))
+            run.add_text(self.mis_id_text[int(id_dir)] + 'Plotted using data for {}.'.format(date_string))
             run.add_break()
+
             # for img in os.listdir(doc_path + plot_path + self.dates + '/' + id_dir):
             #     run.add_picture(doc_path + plot_path + self.dates + '/' + id_dir + '/' + img, height=Inches(3))
             #     # run.add_break()
