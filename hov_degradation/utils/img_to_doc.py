@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+import json
 
 from datetime import date
 from docx import Document
@@ -10,19 +11,45 @@ from docx.shared import Inches
 
 class PlotsToDocx:
 
-    def __init__(self, path, start_date, end_date):
+    def __init__(self, path, plot_date, start_date, end_date):
         self.path = path
         self.dates = start_date + '_to_' + end_date
+        self.plot_date = plot_date
         self.agg_results = self.aggregate_results()
-        self.docx = self.img_to_doc()
+        self.mis_id_text, self.neighbors, self.reconfig_ids = self.get_labels()
+        self.doc = self.img_to_doc()
 
-        self.docx.save(self.path + '/results/HOV Deg Results Draft_' + str(date.today()) + '.docx')
+    def get_labels(self):
+       # Load JSON files
+        with open(self.path + "neighbors_D7_" + self.dates + ".json") as f:
+            neighbors = json.load(f)
 
+        with open(self.path + "results/ai_misconfigured_ids_D7_" + self.dates + ".json") as f:
+            mis_ids = json.load(f)
 
+        with open(self.path + "results/ai_reconfig_lanes_D7_2019-07_to_2019-12.json") as f:
+            reconfig_ids = json.load(f)
+
+        # Get unique predictions
+        mis_ids_unique = mis_ids['classification'] + mis_ids['unsupervised']
+        mis_ids_unique = pd.Series(mis_ids_unique).sort_values().unique().tolist()
+
+        # Create text dict
+        mis_id_text = {}
+        for id in mis_ids_unique:
+            method = [m for m in ['classification', 'unsupervised'] if id in mis_ids[m]]
+            if len(method) > 1:
+                method = 'both ' + ' and '.join(method) + ' methods'
+            else:
+                method += ' method only'
+                method = ''.join(method)
+            mis_id_text[id] = 'Potential misconfiguration detected by ' + method + '. '
+
+        return mis_id_text, neighbors, reconfig_ids
 
     def aggregate_results(self):
         df_meta = pd.read_csv(self.path + "data/meta_2020-11-16.csv")
-        df_pred = pd.read_csv(self.path + 'results/predictions_D7_' + self.dates + '.csv')
+        df_pred = pd.read_csv(self.path + 'results/ai_detections_table_D7_' + self.dates + '.csv')
 
         total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
         analyzed = df_pred.iloc[:, 0].count()
@@ -43,6 +70,7 @@ class PlotsToDocx:
 
         plot_path = 'results/misconfig_plots_'
         strip_path = 'results/strip_maps/'
+        date_string = pd.to_datetime(self.plot_date).day_name() + ' ' + self.plot_date
 
         para = doc.add_paragraph()
         run = para.add_run()
@@ -50,21 +78,32 @@ class PlotsToDocx:
         font.name = 'Calibri'
         font.size = Pt(18)
         font.bold = True
+
         for key in self.agg_results.keys():
             run.add_text( key + ": " + str(self.agg_results[key]))
             run.add_break()
         run.add_break(WD_BREAK.PAGE)
 
         for id_dir in os.listdir(doc_path + plot_path + self.dates):
+            figpath = doc_path + plot_path + self.dates + '/' + id_dir + '/'
+
             doc.add_heading('Sensor: ' + id_dir, level=2)
             para = doc.add_paragraph()
             run = para.add_run()
             font.name = 'Calibri'
             font = run.font
-            # run.add_break()
-            for img in os.listdir(doc_path + plot_path + self.dates + '/' + id_dir):
-                run.add_picture(doc_path + plot_path + self.dates + '/' + id_dir + '/' + img, height=Inches(3))
-                # run.add_break()
+            run.add_text(self.mis_id_text[int(id_dir)] + 'Plotted using data for {}'.format(date_string))
+            run.add_break()
+            # for img in os.listdir(doc_path + plot_path + self.dates + '/' + id_dir):
+            #     run.add_picture(doc_path + plot_path + self.dates + '/' + id_dir + '/' + img, height=Inches(3))
+            #     # run.add_break()
+
+            run.add_picture(figpath + id_dir + '_lat.png', height=Inches(2.35))
+            run.add_picture(figpath + id_dir + '_long.png', height=Inches(2.35))
+
+            if id_dir in list(self.reconfig_ids.keys()):
+                run.add_picture(figpath + id_dir + '_fix.png', width=Inches(6))
+
             run.add_break()
             run.add_picture(doc_path + strip_path + id_dir + "_strip.png", width=Inches(6))
             run.add_text('Comments:')
@@ -73,12 +112,18 @@ class PlotsToDocx:
 
         return doc
 
+    def save(self):
+        self.doc.save(self.path + '/results/HOV Deg Results Draft_' + str(date.today()) + '.docx')
+
 if __name__ == '__main__':
-    doc_path = '../../experiments/district_7/'
+
     # doc_path = 'experiments/district_7/'
+    doc_path = '../../experiments/district_7/'
     start_date = '2020-12-06'
     end_date = '2020-12-12'
+    plot_date = "2020-12-09"
 
-    document = PlotsToDocx(doc_path, start_date, end_date)
+    document = PlotsToDocx(doc_path, plot_date, start_date, end_date)
+    document.save()
 
 

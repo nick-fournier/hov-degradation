@@ -1,6 +1,9 @@
 import os
 import pandas as pd
+import json
+
 from pandas.tseries.holiday import USFederalHolidayCalendar
+from os import path
 
 class GetDegradation:
 
@@ -203,11 +206,23 @@ def get_holidays(path):
 
     return df
 
+def save_reconfigs(path, df):
+    out = {}
+    for id in df['ID']:
+        df_row = df[df['ID'] == id]
+        out[int(id)] = {'issue': df_row['issue'].to_string(index=False).strip(),
+                   'real_lane': df_row['real_lane'].to_string(index=False).strip(),
+                   'lane_num': int(df_row['real_lane'].to_string(index=False).strip()[5])}
+
+    with open(path, 'w') as f:
+        json.dump(out, f, sort_keys=True, indent=4)
+
 if __name__ == '__main__':
-    inpath = "../../experiments/raw data/D7/hourly/"
-    outpath = "../../experiments/district_7/results/"
     # inpath = "experiments/raw data/D7/hourly/"
     # outpath = "experiments/district_7/results/"
+
+    inpath = "../../experiments/raw data/D7/hourly/"
+    outpath = "../../experiments/district_7/results/"
 
     # df_dates = get_holidays(inpath)
 
@@ -216,11 +231,15 @@ if __name__ == '__main__':
                   'peak_pm': ['15:00:00', '16:00:00', '17:00:00']}
 
     # These are the bad IDs and suspected mislabeled lane
-    df_bad = pd.DataFrame(
-        {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
-         'issue': ['Misconfigured']*9,
-         'real_lane': ['Lane 1', 'Lane 2', 'Lane 1', 'Lane 2', 'Lane 1', 'Lane 4', 'Lane 1', 'Lane 3', 'Lane 1']}
-    )
+    reconfigs = {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
+                 'issue': ['Misconfigured']*9,
+                 'real_lane': ['Lane 1', 'Lane 2', 'Lane 1', 'Lane 2',
+                               'Lane 1', 'Lane 4', 'Lane 1', 'Lane 3', 'Lane 1']}
+    df_bad = pd.DataFrame(reconfigs)
+
+    if not path.exists(outpath + 'ai_reconfig_lanes_D7_2019-07_to_2019-12.json'):
+        save_reconfigs(outpath + 'ai_reconfig_lanes_D7_2019-07_to_2019-12.json', df_bad)
+
 
     degraded = GetDegradation(inpath, df_bad, peak_hours, saved=True, joedays=False)
     results = degraded.get_degradation()

@@ -5,6 +5,9 @@ import json
 from collections import Counter
 
 
+
+#### These functions I don't need anymore I don't think... ###
+
 def agg_scores(path, dates):
     scores = pd.DataFrame()
     for thedate in dates:
