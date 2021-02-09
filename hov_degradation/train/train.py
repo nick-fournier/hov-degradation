@@ -230,7 +230,7 @@ class Detection:
 
     def get_misconfig_meta(self):
         # Save misconfig IDs
-        cols = ['ID', 'Fwy', 'Dir', 'District', 'Abs_PM', 'Length', 'Type', 'Lanes', 'Name']
+        cols = ['ID', 'Fwy', 'Dir', 'District', 'Abs_PM', 'Length', 'Type', 'Lanes', 'Name', 'Latitude', 'Longitude']
         df_meta = pd.read_csv(self.path + 'data/meta_2020-11-16.csv', usecols=cols)
 
         # Create nice data frame
