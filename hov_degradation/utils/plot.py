@@ -107,7 +107,7 @@ class PlotMisconfigs:
             # plt.ylim(0, 250)
             for n in range(1, main_num_lanes + 1):
                 plt.plot(_df_main['Timestamp'], _df_main['Lane {} Flow'.format(n)],
-                         alpha=0.5, linewidth=0.75, label='Mainline lane: {}'.format(n))
+                         alpha=0.5, linewidth=0.75, label='Mainline lane {} sensor: {}'.format(n, main_neighbor))
             plt.plot(_df['Timestamp'], _df['Flow'],
                      color='black', label='HOV sensor: {}'.format(mis_id))
             plt.legend()
@@ -122,7 +122,7 @@ class PlotMisconfigs:
                 plt.figure(figsize=(8, 3))
                 plt.plot(colors=colors)
                 plt.rc('font', size=8)
-                plt.title("Presumed corrected lane configuration of VDS {}".format(mis_id))
+                plt.title("Corrected lane configuration of VDS {}".format(mis_id))
                 plt.xlabel('Time')
                 plt.xticks([])
                 plt.ylabel('Flow')
@@ -133,13 +133,13 @@ class PlotMisconfigs:
                 plt.plot(_df_down['Timestamp'], _df_down['Flow'],
                          alpha=0.5, linewidth=0.5, label='Downstream: {}'.format(down_neighbor))
                 # Misconfigured lane
-                plt.plot(_df['Timestamp'], _df['Flow'],
-                         linewidth=0.75, linestyle='dotted',
-                         color='red', label='Misconfigured HOV sensor: {}'.format(mis_id))
+                # plt.plot(_df['Timestamp'], _df['Flow'],
+                #          linewidth=0.75, linestyle='dotted',
+                #          color='red', label='Mislabeled HOV sensor: {}'.format(mis_id))
                 # Corrected lane
                 plt.plot(_df_main['Timestamp'], _df_main['Lane {} Flow'.format(n)],
                          color='green', linewidth=0.75,
-                         label='Presumed HOV (Mainline: {} lane {})'.format(main_neighbor, n))
+                         label='Correct HOV sensor: {}, mislabeled mainline lane {}'.format(main_neighbor, n))
                 plt.legend()
                 plt.savefig(outdir + '/{}_fix.png'.format(mis_id), dpi=300, bbox_inches='tight')
                 plt.close()
