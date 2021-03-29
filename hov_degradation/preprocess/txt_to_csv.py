@@ -26,7 +26,3 @@ def txt2csv(inpath, outpath):
         print("Done formatting " + fout)
 
 
-if __name__ == '__main__':
-    # inpath = "../../experiments/raw data/5min/5min"
-    # outpath = "../../experiments/district_7/data/"
-    # txt2csv(inpath, outpath)

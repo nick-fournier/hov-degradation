@@ -2,6 +2,9 @@
 import numpy as np
 import pandas as pd
 import json
+import os
+import sys
+import gzip
 from scipy.stats import ks_2samp
 
 FREEWAYS = {
@@ -34,25 +37,50 @@ class PreProcess:
     # TODO
     """
 
-    def __init__(self, path, start_date, end_date):
+    def __init__(self, inpath, outpath):
         """
         # TODO
         """
-        self.dates = pd.date_range(start_date, end_date)
-        self.path = path
-        # self.date = pd.to_datetime(df_date).strftime("%m/%d/%Y") #Reformats to month day year to match PeMS
-
+        #Initialize for later
         self.df_merge = None
         self.processed_data = None
 
-        self.df_meta = pd.read_csv(self.path + "meta_2020-11-16.csv")
-        self.df_data = pd.DataFrame()
+        #Amend string
+        if inpath[-1] is not "/":
+            self.inpath = inpath + "/"
+        else:
+            self.inpath = inpath
 
-        for d in self.dates:
-            date = str(d.date())
-            print("Importing station_5min_" + date + ".csv...")
-            df_data_new = pd.read_csv(self.path + "station_5min_" + date + ".csv", header=0)
-            self.df_data = self.df_data.append(df_data_new, ignore_index=True)
+        # Amend string
+        if outpath[-1] is not "/":
+            self.outpath = outpath + "/"
+        else:
+            self.outpath = outpath
+
+        # Read meta data
+        self.flist = pd.Series(os.listdir(self.inpath))
+        f = self.flist[self.flist.str.contains("meta")][0]
+        self.df_meta = pd.read_csv(self.inpath + f, sep="\t")
+        self.district = self.df_meta.loc[0, 'District']
+
+        #Get the actual data
+        self.df_data = self.getdata()
+
+        #Extract the dates
+        self.start_date = pd.to_datetime(self.df_data.Timestamp.min()[:10], format='%m/%d/%Y').strftime('%Y-%m-%d')
+        self.end_date = pd.to_datetime(self.df_data.Timestamp.max()[:10], format='%m/%d/%Y').strftime('%Y-%m-%d')
+        self.dates = pd.date_range(self.start_date, self.end_date)
+
+    def getdata(self):
+        data_flist = self.flist[self.flist.str.contains("station_5min_")]
+        headers = pd.read_csv('../experiments/static/5min_headers.csv', index_col=0, header=0).columns
+        df_data = pd.DataFrame()
+        for f in data_flist:
+            print('Loading data from file: ' + f)
+            df_data = df_data.append(pd.read_csv(self.inpath + f, header=None), sort=False)
+        df_data.columns = headers
+
+        return df_data
 
     def preprocess(self, location='5min', split=True):
         """ #TODO yf
@@ -446,54 +474,50 @@ class PreProcess:
         df_train, df_test = data.iloc[:n], data.iloc[n:]
         return df_train, df_test
 
+    def save(self):
+        if not os.path.isdir(self.outpath):
+            os.mkdir(self.outpath)
+            os.mkdir(self.outpath + "processed")
 
-if __name__ == '__main__':
+        print("Pre-processing I-210 test/train data...")
+        # I210
+        train_i210, test_i210, neighbors_i210 = self.preprocess(location='i210')
 
-    # Import the data
-    PP = PreProcess(path="../../experiments/district_7/data/",
-                             start_date='2020-12-06',
-                             end_date='2020-12-12')
+        # District 7
+        print("Pre-processing District 7 data...")
+        df_D7, _, neighbors_D7 = self.preprocess(location='5min', split=False)
 
+        print("Saving results...")
+        # I210
+        train_i210.to_csv(self.outpath + "processed/processed_i210_train_" + self.start_date + "_to_" + self.end_date + ".csv")
+        test_i210.to_csv(self.outpath + "processed/processed_i210_test_" + self.start_date + "_to_" + self.end_date + ".csv")
 
-    print("Pre-processing I-210 test/train data...")
-    # I210
-    train_i210, test_i210, neighbors_i210 = PP.preprocess(location='i210')
+        # District 7
+        df_D7.to_csv(self.outpath + "processed/processed_D7_" + self.start_date + "_to_" + self.end_date + ".csv")
+        with open(self.outpath + "processed/neighbors_D7_" + self.start_date + "_to_" + self.end_date + ".json", 'w') as f:
+            json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+        print("Done")
 
-    # District 7
-    print("Pre-processing District 7 data...")
-    df_D7, _, neighbors_D7 = PP.preprocess(location='5min', split=False)
-
-    print("Saving results...")
-    # I210
-    train_i210.to_csv(PP.path[:-5] + "processed_i210_train_" + PP.start_date + "_to_" + PP.end_date + ".csv")
-    test_i210.to_csv(PP.path[:-5] + "processed_i210_test_" + PP.start_date + "_to_" + PP.end_date + ".csv")
-
-    # District 7
-    df_D7.to_csv(PP.path[:-5] + "processed_D7_" + PP.start_date + "_to_" + PP.end_date + ".csv")
-    with open(PP.path[:-5] + "neighbors_D7_" + PP.start_date + "_to_" + PP.end_date + ".json", 'w') as f:
-        json.dump(neighbors_D7, f, sort_keys=True, indent=4)
-    print("Done")
-
-    #### Loop for individual dates ####
-    ###################################
-    # dates = pd.date_range(start_date, end_date)
-    # df_meta = pd.read_csv(path + "meta_2020-11-16.csv")
-    #
-    # for thedate in dates:
-    #     date = str(thedate.date())
-    #
-    #     df_data = pd.read_csv(path + "station_5min_" + date + ".csv")
-    #     # I210
-    #     data = PreProcess(df_data, df_meta, location='i210', df_date=date)
-    #     df_train, df_test, neighbors_i210 = data.preprocess()
-    #     df_train.to_csv(path[:-5] + "processed_i210_train_" + date + ".csv")
-    #     df_test.to_csv(path[:-5] + "processed_i210_test_" + date + ".csv")
-    #
-    #     # District 7
-    #     data = PreProcess(df_data, df_meta, location='5min', df_date=date, split=False)
-    #     df_D7, _, neighbors_D7 = data.preprocess()
-    #     df_D7.to_csv(path[:-5] + "processed_D7_" + date + ".csv")
-    #     with open(path[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
-    #         json.dump(neighbors_D7, f, sort_keys=True, indent=4)
-    #
-    #     print("Completed preprocessing of data for " + date)
+        #### Loop for individual dates ####
+        ###################################
+        # dates = pd.date_range(start_date, end_date)
+        # df_meta = pd.read_csv(inpath + "meta_2020-11-16.csv")
+        #
+        # for thedate in dates:
+        #     date = str(thedate.date())
+        #
+        #     df_data = pd.read_csv(inpath + "station_5min_" + date + ".csv")
+        #     # I210
+        #     data = PreProcess(df_data, df_meta, location='i210', df_date=date)
+        #     df_train, df_test, neighbors_i210 = data.preprocess()
+        #     df_train.to_csv(inpath[:-5] + "processed_i210_train_" + date + ".csv")
+        #     df_test.to_csv(inpath[:-5] + "processed_i210_test_" + date + ".csv")
+        #
+        #     # District 7
+        #     data = PreProcess(df_data, df_meta, location='5min', df_date=date, split=False)
+        #     df_D7, _, neighbors_D7 = data.preprocess()
+        #     df_D7.to_csv(inpath[:-5] + "processed_D7_" + date + ".csv")
+        #     with open(inpath[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
+        #         json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+        #
+        #     print("Completed preprocessing of data for " + date)

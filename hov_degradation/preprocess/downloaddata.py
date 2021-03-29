@@ -6,6 +6,9 @@ import os
 from datetime import datetime
 from pems.download import PemsDownloader as PDR
 
+
+
+##### Doesn't work properly
 class RunByDate:
     def __init__(self, start_date, end_date, location='district_7'):
         # if not start_date:
