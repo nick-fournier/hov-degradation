@@ -40,9 +40,9 @@ def main(inpath, outpath, plot_date):
     detections.save()
 
     #Generate plots
-    pp = ''
-    while pp is '':
-        pp = input("Enter date to use for plots (yyyy-mm-dd):")
+    plot_date = ''
+    while plot_date is '':
+        plot_date = input("Enter date to use for plots (yyyy-mm-dd):")
 
     if os.listdir(outpath + 'results/misconfig_plots_' + fdates):
         pp = ''
