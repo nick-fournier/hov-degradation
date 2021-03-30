@@ -26,7 +26,7 @@ class PlotsToDocx:
         with open(self.path + "results/ai_misconfigured_ids_D7_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
-        with open(self.path + "results/manually_fixed_lane_labels.json") as f:
+        with open(self.path + "results/fixed_sensor_labels.json") as f:
             reconfig_ids = json.load(f)
 
         # Get unique predictions

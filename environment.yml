@@ -1,4 +1,4 @@
-name: hov-degradation
+name: hov-analysis
 
 dependencies:
     - python==3.6.8

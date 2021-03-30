@@ -1,8 +1,12 @@
 .DS_Store
 #*.csv
+*.rar
+*.zip
+#*.txt
+.gz
 .idea
 .ipynb_checkpoints/
 __pycache__
-/experiments/raw data/
-/experiments/district_7
+/experiments/input/
+/experiments/output/
 hov_degradation.egg-info/

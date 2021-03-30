@@ -5,11 +5,64 @@ import json
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from os import path
 
+def check_path(path):
+    if path[-1] is not "/":
+        return path + "/"
+    else:
+        return path
+
+def get_dates(path):
+    dates = [file for file in os.listdir(path) if 'station_hour' in file]
+    dates = list(map(lambda st: str.replace(st, "text_station_hour_", ""), dates))
+    dates = list(map(lambda st: str.replace(st, "_", "-"), dates))
+    dates = list(map(lambda st: str.replace(st, ".txt.gz", ""), dates))
+    dates = dates[0] + '_to_' + dates[len(dates)-1]
+    return dates
+
+def get_holidays(path):
+    # Initialize the dates
+    joedates = pd.read_csv(path + 'joedates_for_769745.csv',header=None)[0]
+    joedates = pd.to_datetime(joedates, format='%m/%d/%Y')
+    alldates = pd.date_range(joedates.min(), joedates.max())
+    # Holidays
+    cal = USFederalHolidayCalendar()    # cal = calendar()
+    holidays = cal.holidays(start=alldates.min(), end=alldates.max())
+
+    # Make into DataFrame
+    df = pd.DataFrame({'Date': alldates})
+    df['JoeDate'] = df['Date'].isin(joedates)
+    df['Weekday'] = df['Date'].dt.dayofweek < 5  # 0-4: Monday-Friday, 5-6: Saturday-Sunday
+    df['Holiday'] = df['Date'].isin(holidays)
+
+    return df
+
+def reconfigs_to_json(path, df):
+    out = {}
+    for id in df['ID']:
+        df_row = df[df['ID'] == id]
+        out[int(id)] = {'issue': df_row['issue'].to_string(index=False).strip(),
+                   'real_lane': df_row['real_lane'].to_string(index=False).strip(),
+                   'lane_num': int(df_row['real_lane'].to_string(index=False).strip()[5])}
+
+    with open(path, 'w') as f:
+        json.dump(out, f, sort_keys=True, indent=4)
+
 class GetDegradation:
 
-    def __init__(self, path, bad_sensors, peak_hours, saved=False, joedays=False, metaname='d07_text_meta_2019_11_09.txt'):
-        self.path = path
-        self.meta = pd.read_csv(path + metaname)
+    def __init__(self, inpath, outpath, bad_sensors, saved=False, joedays=False):
+
+        # Default peak hours
+        peak_hours = {'peak_am': ['06:00:00', '07:00:00', '08:00:00'],
+                      'peak_pm': ['15:00:00', '16:00:00', '17:00:00']}
+
+        self.inpath = check_path(inpath)
+        self.outpath = check_path(outpath)
+
+        # Meta data
+        self.flist = pd.Series(os.listdir(self.inpath))
+        f = self.flist[self.flist.str.contains("meta")][0]
+        self.meta = pd.read_csv(self.inpath + f, sep="\t")
+
         self.bad_ids = bad_sensors
         self.peak_am = peak_hours['peak_am']
         self.peak_pm = peak_hours['peak_pm']
@@ -19,6 +72,8 @@ class GetDegradation:
         self.data = None
         self.degraded = None
         self.saved = saved
+
+        self.results = self.get_degradation()
 
     def Repeat(x):
         _size = len(x)
@@ -51,22 +106,25 @@ class GetDegradation:
         return df_neighbors
 
     def get_sensor_data(self):
-
-        fpath = self.path + 'd07_extracted_sensors_hourly.csv'
-
-        if self.saved and os.path.isfile(fpath):
-                df_sensors = pd.read_csv(fpath)
+        prefiltered_path = self.outpath + 'results/extracted_sensors_hourly.csv'
+        if self.saved and os.path.isfile(prefiltered_path):
+                df_sensors = pd.read_csv(prefiltered_path)
         else:
             # Headers, file list, and ID list
-            headers = pd.read_csv(self.path + "d07_hourly_headers.csv", index_col=0, header=0)
+            # Checks whether it's running or in debug
+            if os.path.isfile('static/5min_headers.csv'):
+                headers = pd.read_csv('static/hourly_headers.csv', index_col=0, header=0)
+            else:
+                headers = pd.read_csv('hov_degradation/static/hourly_headers.csv', index_col=0, header=0)
+
             id_list = self.neighbors['bad_HOV'].to_list() + self.neighbors['neighbor_ML'].to_list()
             misconfigs = []
-            gzlist = pd.Series(os.listdir(self.path))
+            gzlist = pd.Series(os.listdir(self.inpath))
             gzlist = gzlist[gzlist.str.contains("txt.gz")]
 
             # Read file, Filter for misconfig'd sensors
             for gzf in gzlist:
-                df_hourly = pd.read_csv(self.path + gzf, header=None, names=headers)
+                df_hourly = pd.read_csv(self.inpath + gzf, header=None, names=headers)
                 df_hourly = df_hourly[df_hourly['Station'].isin(id_list)]
                 misconfigs.append(df_hourly)
                 print("Done loadings " + gzf)
@@ -75,9 +133,7 @@ class GetDegradation:
             df_sensors = pd.concat(misconfigs)
             df_sensors.rename(columns={"Station Length": "Length"}, inplace=True)
             #Save
-            df_sensors.to_csv(fpath)
-
-        # self.raw_data = df_sensors
+            df_sensors.to_csv(prefiltered_path)
         return df_sensors
 
     def get_vhtvmt(self, df, suffix):
@@ -136,9 +192,10 @@ class GetDegradation:
             good_lane = self.neighbors[self.neighbors['bad_HOV'] == bad_id]['real_lane'].to_string(index=False).strip()
             good_cols = [good_lane + s for s in [' Flow', ' Occupancy', ' Speed']]
 
+            # Had this when comparing with Joe's data
             if bad_id == 769745 & self.joedays:
                 # Filter Sensor 769745 for direct comparison
-                datepath = self.path + 'joedates_for_769745.csv'
+                datepath = self.inpath + 'joedates_for_769745.csv'
                 # datepath = 'hov_degradation/preprocess/joedates_for_769745.csv'
                 thesensor = self.data['Station'] == 769745
                 thedates = self.data['DATE'].isin(pd.read_csv(datepath, header=None)[0].tolist())
@@ -178,75 +235,14 @@ class GetDegradation:
         # Use output to resort the col order that got fucked up
         df_results = df_results[dict.keys(output)]
 
-        self.results = df_results
         return df_results
 
-def get_dates(path):
-    dates = [file for file in os.listdir(path) if 'station_hour' in file]
-    dates = list(map(lambda st: str.replace(st, "d07_text_station_hour_", ""), dates))
-    dates = list(map(lambda st: str.replace(st, "_", "-"), dates))
-    dates = list(map(lambda st: str.replace(st, ".txt.gz", ""), dates))
-    dates = dates[0] + '_to_' + dates[len(dates)-1]
-    return dates
-
-def get_holidays(path):
-    # Initialize the dates
-    joedates = pd.read_csv(path + 'joedates_for_769745.csv',header=None)[0]
-    joedates = pd.to_datetime(joedates, format='%m/%d/%Y')
-    alldates = pd.date_range(joedates.min(), joedates.max())
-    # Holidays
-    cal = USFederalHolidayCalendar()    # cal = calendar()
-    holidays = cal.holidays(start=alldates.min(), end=alldates.max())
-
-    # Make into DataFrame
-    df = pd.DataFrame({'Date': alldates})
-    df['JoeDate'] = df['Date'].isin(joedates)
-    df['Weekday'] = df['Date'].dt.dayofweek < 5  # 0-4: Monday-Friday, 5-6: Saturday-Sunday
-    df['Holiday'] = df['Date'].isin(holidays)
-
-    return df
-
-def save_reconfigs(path, df):
-    out = {}
-    for id in df['ID']:
-        df_row = df[df['ID'] == id]
-        out[int(id)] = {'issue': df_row['issue'].to_string(index=False).strip(),
-                   'real_lane': df_row['real_lane'].to_string(index=False).strip(),
-                   'lane_num': int(df_row['real_lane'].to_string(index=False).strip()[5])}
-
-    with open(path, 'w') as f:
-        json.dump(out, f, sort_keys=True, indent=4)
-
-if __name__ == '__main__':
-    # inpath = "experiments/raw data/D7/hourly/"
-    # outpath = "experiments/district_7/results/"
-
-    inpath = "../../experiments/raw data/D7/hourly/"
-    outpath = "../../experiments/district_7/results/"
-
-    # df_dates = get_holidays(inpath)
-
-    # Peak hours
-    peak_hours = {'peak_am': ['06:00:00', '07:00:00', '08:00:00'],
-                  'peak_pm': ['15:00:00', '16:00:00', '17:00:00']}
-
-    # These are the bad IDs and suspected mislabeled lane
-    reconfigs = {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
-                 'issue': ['Misconfigured']*9,
-                 'real_lane': ['Lane 1', 'Lane 2', 'Lane 1', 'Lane 2',
-                               'Lane 1', 'Lane 4', 'Lane 1', 'Lane 3', 'Lane 1']}
-    df_bad = pd.DataFrame(reconfigs)
-
-    if not path.exists(outpath + 'ai_reconfig_lanes_D7_2019-07_to_2019-12.json'):
-        save_reconfigs(outpath + 'ai_reconfig_lanes_D7_2019-07_to_2019-12.json', df_bad)
+    def save(self, dates):
+        # Saving
+        # dates = get_dates(inpath)
+        self.results.to_csv(self.outpath + 'results/degradation_results_' + dates + '.csv', index=False)
 
 
-    degraded = GetDegradation(inpath, df_bad, peak_hours, saved=True, joedays=False)
-    results = degraded.get_degradation()
-
-    # Saving
-    dates = get_dates(inpath)
-    results.to_csv(outpath + 'degradation_results_' + dates + '.csv', index=False)
 
 
 

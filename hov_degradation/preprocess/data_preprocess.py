@@ -28,6 +28,11 @@ FREEWAYS = {
     }
 }
 
+def check_path(path):
+    if path[-1] is not "/":
+        return path + "/"
+    else:
+        return path
 
 class PreProcess:
     """Preprocess PeMS Station 5-minute data for HOV anomaly detection.
@@ -46,22 +51,15 @@ class PreProcess:
         self.processed_data = None
 
         #Amend string
-        if inpath[-1] is not "/":
-            self.inpath = inpath + "/"
-        else:
-            self.inpath = inpath
-
-        # Amend string
-        if outpath[-1] is not "/":
-            self.outpath = outpath + "/"
-        else:
-            self.outpath = outpath
+        self.inpath = check_path(inpath)
+        self.outpath = check_path(outpath)
 
         # Read meta data
         self.flist = pd.Series(os.listdir(self.inpath))
         f = self.flist[self.flist.str.contains("meta")][0]
         self.df_meta = pd.read_csv(self.inpath + f, sep="\t")
-        self.district = self.df_meta.loc[0, 'District']
+
+        self.district = str(self.df_meta.loc[0, 'District'])
 
         #Get the actual data
         self.df_data = self.getdata()
@@ -74,11 +72,10 @@ class PreProcess:
     def getdata(self):
         data_flist = self.flist[self.flist.str.contains("station_5min_")]
         # Checks whether it's running or in debug
-        if os.path.isfile('../experiments/static/5min_headers.csv'):
-            headers = pd.read_csv('../experiments/static/5min_headers.csv', index_col=0, header=0).columns
+        if os.path.isfile('static/5min_headers.csv'):
+            headers = pd.read_csv('static/5min_headers.csv', index_col=0, header=0).columns
         else:
-            headers = pd.read_csv('experiments/static/5min_headers.csv', index_col=0, header=0).columns
-
+            headers = pd.read_csv('hov_degradation/static/5min_headers.csv', index_col=0, header=0).columns
 
         df_data = pd.DataFrame()
         for f in data_flist:
@@ -490,41 +487,17 @@ class PreProcess:
         train_i210, test_i210, neighbors_i210 = self.preprocess(location='i210')
 
         # District 7
-        print("Pre-processing District 7 data...")
-        df_D7, _, neighbors_D7 = self.preprocess(location='5min', split=False)
+        print("Pre-processing District data...")
+        df_District, _, neighbors_District = self.preprocess(location='5min', split=False)
 
         print("Saving results...")
         # I210
         train_i210.to_csv(self.outpath + "processed/processed_i210_train_" + self.start_date + "_to_" + self.end_date + ".csv")
         test_i210.to_csv(self.outpath + "processed/processed_i210_test_" + self.start_date + "_to_" + self.end_date + ".csv")
 
-        # District 7
-        self.df_meta.to_csv(self.outpath + "processed/processed_D7_" + self.start_date + "_to_" + self.end_date + ".csv")
-        df_D7.to_csv(self.outpath + "processed/processed_D7_" + self.start_date + "_to_" + self.end_date + ".csv")
-        with open(self.outpath + "processed/neighbors_D7_" + self.start_date + "_to_" + self.end_date + ".json", 'w') as f:
-            json.dump(neighbors_D7, f, sort_keys=True, indent=4)
+        # District
+        # self.df_meta.to_csv(self.outpath + "processed/processed_meta_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".csv")
+        df_District.to_csv(self.outpath + "processed/processed_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".csv")
+        with open(self.outpath + "processed/neighbors_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".json", 'w') as f:
+            json.dump(neighbors_District, f, sort_keys=True, indent=4)
         print("Done")
-
-        #### Loop for individual dates ####
-        ###################################
-        # dates = pd.date_range(start_date, end_date)
-        # df_meta = pd.read_csv(inpath + "meta_2020-11-16.csv")
-        #
-        # for thedate in dates:
-        #     date = str(thedate.date())
-        #
-        #     df_data = pd.read_csv(inpath + "station_5min_" + date + ".csv")
-        #     # I210
-        #     data = PreProcess(df_data, df_meta, location='i210', df_date=date)
-        #     df_train, df_test, neighbors_i210 = data.preprocess()
-        #     df_train.to_csv(inpath[:-5] + "processed_i210_train_" + date + ".csv")
-        #     df_test.to_csv(inpath[:-5] + "processed_i210_test_" + date + ".csv")
-        #
-        #     # District 7
-        #     data = PreProcess(df_data, df_meta, location='5min', df_date=date, split=False)
-        #     df_D7, _, neighbors_D7 = data.preprocess()
-        #     df_D7.to_csv(inpath[:-5] + "processed_D7_" + date + ".csv")
-        #     with open(inpath[:-5] + "neighbors_D7_" + date + ".json", 'w') as f:
-        #         json.dump(neighbors_D7, f, sort_keys=True, indent=4)
-        #
-        #     print("Completed preprocessing of data for " + date)

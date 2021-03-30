@@ -13,14 +13,21 @@ from sklearn.covariance import EllipticEnvelope
 from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score
 
+def check_path(path):
+    if path[-1] is not "/":
+        return path + "/"
+    else:
+        return path
 
 class Detection:
 
     def __init__(self, inpath, outpath, date_range_string):
         # load data
         self.dates = date_range_string
-        self.path = outpath
-        self.hyperparam_path = self.path + 'results/hyperparameters_' + self.dates + '.json'
+        self.outpath = check_path(outpath)
+        self.inpath = check_path(inpath)
+
+        self.hyperparam_path = self.outpath + 'results/hyperparameters_' + self.dates + '.json'
 
         self.hyperparams = None
         self.scores = {}
@@ -28,20 +35,22 @@ class Detection:
         self.misconfig_meta = None
 
         # Read meta data
-        self.flist = pd.Series(os.listdir(inpath))
+        self.flist = pd.Series(os.listdir(self.inpath))
         f = self.flist[self.flist.str.contains("meta")][0]
-        self.df_meta = pd.read_csv(inpath + f, sep="\t")
+        self.df_meta = pd.read_csv(self.inpath + f, sep="\t")
 
-        if not os.path.isdir(self.path):
-            os.mkdir(self.path)
-            os.mkdir(self.path + "results")
+        self.district = str(self.df_meta.loc[0, 'District'])
 
-        with open(outpath + "processed/neighbors_D7_" + self.dates + ".json") as f:
+        if not os.path.isdir(self.outpath):
+            os.mkdir(self.outpath)
+            os.mkdir(self.outpath + "results")
+
+        with open(self.outpath + "processed/neighbors_D" + self.district + "_" + self.dates + ".json") as f:
             self.neighbors = json.load(f)
-        self.train_df_i210 = pd.read_csv(outpath + "processed/processed_i210_train_" + self.dates + ".csv", index_col=0).dropna()
-        self.test_df_i210 = pd.read_csv(outpath + "processed/processed_i210_test_" + self.dates + ".csv", index_col=0).dropna()
+        self.train_df_i210 = pd.read_csv(self.outpath + "processed/processed_i210_train_" + self.dates + ".csv", index_col=0).dropna()
+        self.test_df_i210 = pd.read_csv(self.outpath + "processed/processed_i210_test_" + self.dates + ".csv", index_col=0).dropna()
         self.df_i210 = pd.concat([self.train_df_i210, self.test_df_i210], axis=0)
-        self.df_D7 = pd.read_csv(outpath + "processed/processed_D7_" + self.dates + ".csv", index_col=0).dropna()
+        self.df_District = pd.read_csv(self.outpath + "processed/processed_D" + self.district + "_" + self.dates + ".csv", index_col=0).dropna()
 
 
         # Running the machine learning
@@ -105,7 +114,7 @@ class Detection:
         y_test_i210 = self.test_df_i210['y'].values
 
         # 5min
-        x_D7 = self.df_D7.drop(columns=['Type', 'y']).values
+        x_District = self.df_District.drop(columns=['Type', 'y']).values
 
         # classifiers
         classifiers_map = {
@@ -146,11 +155,11 @@ class Detection:
         clf.fit(x_train_i210, y_train_i210)
 
         # predict the ids onto the processed data
-        y_pred_D7 = clf.predict(x_D7)
-        self.df_D7['preds_classification'] = y_pred_D7
+        y_pred_District = clf.predict(x_District)
+        self.df_District['preds_classification'] = y_pred_District
 
         # identify misconfigured ids
-        misconfig_ids = list(self.df_D7[self.df_D7['preds_classification'] == 1].index)
+        misconfig_ids = list(self.df_District[self.df_District['preds_classification'] == 1].index)
         print("Anomalies detected by the classification model: "
               "{}".format(misconfig_ids))
 
@@ -163,8 +172,8 @@ class Detection:
         x_i210 = self.df_i210.drop(columns=['Type', 'y']).values
         y_i210 = self.df_i210['y'].values
 
-        x_D7 = self.df_D7.drop(columns=['Type', 'y']).values
-        # x_D7 = df_D7.drop(columns=['Type']).values
+        x_District = self.df_District.drop(columns=['Type', 'y']).values
+        # x_District = df_District.drop(columns=['Type']).values
 
         outliers_fraction = 0.09
 
@@ -200,22 +209,22 @@ class Detection:
         # select the best model
         best_model = max(scores, key=scores.get)
         func = unsupervised_map[best_model]
-        # func.fit(x_D7)
+        # func.fit(x_District)
         # fit the data and tag outliers
         if best_model == "Local Outlier Factor":
-            y_pred_D7 = func.fit_predict(x_D7)
+            y_pred_District = func.fit_predict(x_District)
         else:
-            y_pred_D7 = func.fit(x_D7).predict(x_D7)
+            y_pred_District = func.fit(x_District).predict(x_District)
 
         # change output labels for consistency with the classification outputs
-        y_pred_D7[y_pred_D7 == 1] = 0
-        y_pred_D7[y_pred_D7 == -1] = 1
+        y_pred_District[y_pred_District == 1] = 0
+        y_pred_District[y_pred_District == -1] = 1
 
         # add predictions to the dataframe
-        self.df_D7['preds_unsupervised'] = y_pred_D7
+        self.df_District['preds_unsupervised'] = y_pred_District
 
         # identify misconfigured ids
-        misconfig_ids = list(self.df_D7[self.df_D7['preds_unsupervised'] == 1].index)
+        misconfig_ids = list(self.df_District[self.df_District['preds_unsupervised'] == 1].index)
         print("Anomalies detected by the unsupervised model: "
               "{}".format(misconfig_ids))
 
@@ -241,17 +250,16 @@ class Detection:
         self.misconfig_meta = df_mis_ids.sort_values('ID')
 
     def save(self):
-
         # store dataframe
-        self.df_D7.to_csv(self.path + "results/ai_detections_table_D7_" + self.dates + ".csv")
-        self.misconfig_meta.to_csv(self.path + "results/ai_misconfigs_meta_table_D7_" + self.dates + ".csv")
+        self.df_District.to_csv(self.outpath + "results/detections_table_D" + self.district + "_" + self.dates + ".csv")
+        self.misconfig_meta.to_csv(self.outpath + "results/misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
 
         # Save scores
-        with open(self.path + 'results/ai_scores_' + self.dates + '.json', 'w') as f:
+        with open(self.outpath + 'results/scores_' + self.dates + '.json', 'w') as f:
             json.dump(self.scores, f, sort_keys=True, indent=4)
 
         # Save scores
-        with open(self.path + 'results/ai_misconfigured_ids_D7_' + self.dates + '.json', 'w') as f:
+        with open(self.outpath + 'results/misconfigured_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.misconfig_ids, f, sort_keys=True, indent=4)
 
         print("Saved")

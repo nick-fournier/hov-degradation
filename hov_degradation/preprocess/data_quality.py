@@ -1,5 +1,5 @@
 """Scrip for generating FTP data quality plots. This script is not related to
-the HOV-degradation project. Written by the Connected Corridor staff"""
+the HOV-analysis project. Written by the Connected Corridor staff"""
 import sys
 import boto3
 from io import BytesIO

@@ -4,13 +4,14 @@ Serves as the repository for HOV-degradation analysis
 ## Contents
 
 * [Setup Instructions](#setup-instructions)
+* [Usage](#usage)
 
 ## Setup Instructions
 If you have not done so already, download the hov-degradation github repository.
 
 ```bash
-git clone https://git-codecommit.us-west-2.amazonaws.com/v1/repos/hov-degradation
-cd hov-degradation
+git clone https://github.com/nick-fournier/hov-degradation
+cd hov-analysis
 ```
 
 Next, create the Conda environment and install hov-degradation and its
@@ -19,7 +20,7 @@ dependencies within the environment. You can install Conda from
 
 ```bash
 conda env create -f environment.yml
-source activate hov-degradation
+source activate hov-analysis
 python setup.py develop
 ```
 
@@ -30,6 +31,8 @@ pip install -e .
 ```
 
 ## Usage
+
+
 #### 1. util/data_prerocess.py
 This preprocesses the data for training. Requires file path and the start/end dates for the data.
    

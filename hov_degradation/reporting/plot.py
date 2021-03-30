@@ -34,13 +34,17 @@ class PlotMisconfigs:
     def get_data(self):
         print("Loading traffic data...")
         # Checks whether it's running or in debug
-        if os.path.isfile('../experiments/static/5min_headers.csv'):
-            headers = pd.read_csv('../experiments/static/5min_headers.csv', index_col=0, header=0).columns
+        if os.path.isfile('static/5min_headers.csv'):
+            headers = pd.read_csv('static/5min_headers.csv', index_col=0, header=0).columns
         else:
-            headers = pd.read_csv('experiments/static/5min_headers.csv', index_col=0, header=0).columns
+            headers = pd.read_csv('hov_degradation/static/5min_headers.csv', index_col=0, header=0).columns
 
         #Load 5min data for one day specified
-        self.data = pd.read_csv(self.inpath + "d07_text_station_5min_" + self.plot_date.replace("-", "_") + ".txt.gz")
+        self.flist = pd.Series(os.listdir(self.inpath))
+        filt = self.flist.str.contains("station_5min_" + self.plot_date.replace("-", "_") + ".txt.gz")
+        f = self.flist[filt].to_list()[0]
+        self.data = pd.read_csv(self.inpath + f)
+        # self.data = pd.read_csv(self.inpath + "d07_text_station_5min_" + self.plot_date.replace("-", "_") + ".txt.gz")
         self.data.columns = headers
 
         # Meta data
@@ -52,10 +56,10 @@ class PlotMisconfigs:
         with open(self.outpath + "processed/neighbors_D7_" + self.data_dates + ".json") as f:
             self.neighbors = json.load(f)
 
-        with open(self.outpath + "results/ai_misconfigured_ids_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "results/misconfigured_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
-        with open(self.outpath + "results/manually_fixed_lane_labels.json") as f:
+        with open(self.outpath + "results/fixed_sensor_labels.json") as f:
             self.reconfig_lanes = json.load(f)
 
         # Get unique predictions
