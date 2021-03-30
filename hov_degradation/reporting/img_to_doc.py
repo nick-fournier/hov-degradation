@@ -10,10 +10,9 @@ from docx.shared import Inches
 
 
 class PlotsToDocx:
-
-    def __init__(self, path, plot_date, start_date, end_date):
-        self.path = path
-        self.dates = start_date + '_to_' + end_date
+    def __init__(self, outpath, plot_date, date_range_string):
+        self.path = outpath
+        self.dates = date_range_string
         self.plot_date = plot_date
         self.agg_results = self.aggregate_results()
         self.mis_id_text, self.neighbors, self.reconfig_ids = self.get_labels()
@@ -21,13 +20,13 @@ class PlotsToDocx:
 
     def get_labels(self):
        # Load JSON files
-        with open(self.path + "neighbors_D7_" + self.dates + ".json") as f:
+        with open(self.path + "processed/neighbors_D7_" + self.dates + ".json") as f:
             neighbors = json.load(f)
 
         with open(self.path + "results/ai_misconfigured_ids_D7_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
-        with open(self.path + "results/ai_reconfig_lanes_D7_2019-07_to_2019-12.json") as f:
+        with open(self.path + "results/manually_fixed_lane_labels.json") as f:
             reconfig_ids = json.load(f)
 
         # Get unique predictions
@@ -48,7 +47,10 @@ class PlotsToDocx:
         return mis_id_text, neighbors, reconfig_ids
 
     def aggregate_results(self):
-        df_meta = pd.read_csv(self.path + "data/meta_2020-11-16.csv")
+        # Meta data
+        flist = pd.Series(os.listdir(self.path + 'results'))
+        f = list(flist[flist.str.contains("meta")])[0]
+        df_meta = pd.read_csv(self.path + 'results/' + f)
         df_pred = pd.read_csv(self.path + 'results/ai_detections_table_D7_' + self.dates + '.csv')
 
         total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
@@ -60,7 +62,7 @@ class PlotsToDocx:
                'Analyzed HOVs': analyzed,
                'Identified Misconfigurations (unsupervised)': pred_unsup,
                'Identified Misconfigurations (supervised)': pred_sup,
-               'Analysis date': start_date + " to " + end_date}
+               'Analysis date': self.dates.replace("_", " ")}
 
         return res
 
@@ -84,8 +86,8 @@ class PlotsToDocx:
             run.add_break()
         run.add_break(WD_BREAK.PAGE)
 
-        for id_dir in os.listdir(doc_path + plot_path + self.dates):
-            figpath = doc_path + plot_path + self.dates + '/' + id_dir + '/'
+        for id_dir in os.listdir(self.path + plot_path + self.dates):
+            figpath = self.path + plot_path + self.dates + '/' + id_dir + '/'
 
             doc.add_heading('Sensor: ' + id_dir, level=2)
             para = doc.add_paragraph()
@@ -106,7 +108,7 @@ class PlotsToDocx:
                 run.add_picture(figpath + id_dir + '_fix.png', width=Inches(6))
 
             run.add_break()
-            run.add_picture(doc_path + strip_path + id_dir + "_strip.png", width=Inches(6))
+            run.add_picture(self.path + strip_path + id_dir + "_strip.png", width=Inches(6))
             run.add_text('Comments:')
             run.add_break()
             run.add_break(WD_BREAK.PAGE)
@@ -114,17 +116,7 @@ class PlotsToDocx:
         return doc
 
     def save(self):
-        self.doc.save(self.path + '/results/HOV Deg Results Draft_' + str(date.today()) + '.docx')
+        self.doc.save(self.path + '/results/HOV plots_' + str(date.today()) + '.docx')
 
-if __name__ == '__main__':
-
-    # doc_path = 'experiments/district_7/'
-    doc_path = '../../experiments/district_7/'
-    start_date = '2020-12-06'
-    end_date = '2020-12-12'
-    plot_date = "2020-12-09"
-
-    document = PlotsToDocx(doc_path, plot_date, start_date, end_date)
-    document.save()
 
 

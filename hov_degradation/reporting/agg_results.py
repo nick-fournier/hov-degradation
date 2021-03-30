@@ -6,7 +6,7 @@ from collections import Counter
 
 
 
-#### These functions I don't need anymore I don't think... ###
+# These functions are no longer necessary. Kept in case I do
 
 def agg_scores(path, dates):
     scores = pd.DataFrame()

@@ -2,10 +2,7 @@
 import numpy as np
 import pandas as pd
 import os
-import tensorflow as tf
 import json
-import operator
-import datetime
 
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
@@ -13,40 +10,39 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.covariance import EllipticEnvelope
-from sklearn.ensemble import AdaBoostClassifier
-from sklearn.svm import SVC
-from sklearn.model_selection import RandomizedSearchCV, GridSearchCV
+from sklearn.model_selection import GridSearchCV
 from sklearn.metrics import accuracy_score
-
-from hov_degradation.utils.plot import PlotMisconfigs
-from hov_degradation.utils.agg_results import agg_misconfigs
-from hov_degradation.utils.agg_results import agg_scores
-from hov_degradation.models.classifiers.neural_net import FeedForwardClassifier
 
 
 class Detection:
 
-    def __init__(self, processed_path, date_range):
+    def __init__(self, inpath, outpath, date_range_string):
         # load data
-        self.dates = date_range
-        self.path = processed_path
+        self.dates = date_range_string
+        self.path = outpath
+        self.hyperparam_path = self.path + 'results/hyperparameters_' + self.dates + '.json'
+
         self.hyperparams = None
         self.scores = {}
         self.misconfig_ids = {}
         self.misconfig_meta = None
 
-        with open(processed_path + "neighbors_D7_" + self.dates + ".json") as f:
-            self.neighbors = json.load(f)
-        self.train_df_i210 = pd.read_csv(processed_path + "processed_i210_train_" + self.dates + ".csv", index_col=0).dropna()
-        self.test_df_i210 = pd.read_csv(processed_path + "processed_i210_test_" + self.dates + ".csv", index_col=0).dropna()
-        self.df_i210 = pd.concat([self.train_df_i210, self.test_df_i210], axis=0)
-        self.df_D7 = pd.read_csv(processed_path + "processed_D7_" + self.dates + ".csv", index_col=0).dropna()
+        # Read meta data
+        self.flist = pd.Series(os.listdir(inpath))
+        f = self.flist[self.flist.str.contains("meta")][0]
+        self.df_meta = pd.read_csv(inpath + f, sep="\t")
 
-        # Checks whether it's running the whole package or just thru terminal
-        if os.path.basename(os.getcwd()) == 'train':
-            self.hyperparam_path = 'hyperparameters.json'
-        else:
-            self.hyperparam_path = 'hov_degradation/train/hyperparameters.json'
+        if not os.path.isdir(self.path):
+            os.mkdir(self.path)
+            os.mkdir(self.path + "results")
+
+        with open(outpath + "processed/neighbors_D7_" + self.dates + ".json") as f:
+            self.neighbors = json.load(f)
+        self.train_df_i210 = pd.read_csv(outpath + "processed/processed_i210_train_" + self.dates + ".csv", index_col=0).dropna()
+        self.test_df_i210 = pd.read_csv(outpath + "processed/processed_i210_test_" + self.dates + ".csv", index_col=0).dropna()
+        self.df_i210 = pd.concat([self.train_df_i210, self.test_df_i210], axis=0)
+        self.df_D7 = pd.read_csv(outpath + "processed/processed_D7_" + self.dates + ".csv", index_col=0).dropna()
+
 
         # Running the machine learning
         self.train_classification()
@@ -89,11 +85,10 @@ class Detection:
         hyperparams = {name: None for name in classifiers_map.keys()}
 
         for name, func in classifiers_map.items():
-            print("Tunning hyperparameters of {}".format(name))
+            print("Tuning hyperparameters of {}".format(name))
             clf = func()
             # grid search
-            grid_search = GridSearchCV(clf,
-                                       param_grid=param_grid[name])
+            grid_search = GridSearchCV(clf, param_grid=param_grid[name])
             grid_search.fit(x, y)
             hyperparams[name] = grid_search.best_params_
             print(hyperparams)
@@ -122,7 +117,7 @@ class Detection:
         }
 
         # hyperparams
-        if self.hyperparam_path:
+        if os.path.isfile(self.hyperparam_path):
             with open(self.hyperparam_path) as f:
                 self.hyperparams = json.load(f)
         else:
@@ -231,14 +226,13 @@ class Detection:
     def get_misconfig_meta(self):
         # Save misconfig IDs
         cols = ['ID', 'Fwy', 'Dir', 'District', 'Abs_PM', 'Length', 'Type', 'Lanes', 'Name', 'Latitude', 'Longitude']
-        df_meta = pd.read_csv(self.path + 'data/meta_2020-11-16.csv', usecols=cols)
 
         # Create nice data frame
         df_mis_ids = pd.DataFrame({'id': pd.Series(sum(self.misconfig_ids.values(), [])).unique(),
                                    'classification': False,
                                    'unsupervised': False})
 
-        df_mis_ids = df_mis_ids.merge(df_meta[df_meta['ID'].isin(df_mis_ids['id'])], left_on='id', right_on='ID')
+        df_mis_ids = df_mis_ids.merge(self.df_meta[self.df_meta['ID'].isin(df_mis_ids['id'])], left_on='id', right_on='ID')
         df_mis_ids = df_mis_ids[cols + ['classification', 'unsupervised']]
 
         for m in ['classification', 'unsupervised']:
@@ -247,6 +241,7 @@ class Detection:
         self.misconfig_meta = df_mis_ids.sort_values('ID')
 
     def save(self):
+
         # store dataframe
         self.df_D7.to_csv(self.path + "results/ai_detections_table_D7_" + self.dates + ".csv")
         self.misconfig_meta.to_csv(self.path + "results/ai_misconfigs_meta_table_D7_" + self.dates + ".csv")
@@ -260,23 +255,3 @@ class Detection:
             json.dump(self.misconfig_ids, f, sort_keys=True, indent=4)
 
         print("Saved")
-
-
-if __name__ == '__main__':
-    # load processed data
-    # path = "experiments/district_7/"
-    path = "../../experiments/district_7/"
-    start_date = '2020-12-06'
-    end_date = '2020-12-12'
-    dates = start_date + "_to_" + end_date
-    detections = Detection(path, dates)
-    detections.save()
-
-    ##### PLOT RESULTS #####
-    # plots = PlotMisconfigs(path=path, plot_date="2020-12-09", data_dates=dates)
-    # plots.save_plots()
-
-    #
-    # # Aggregate results
-    # agg_scores(path=path + 'results/', dates=dates)
-    # agg_misconfigs(path=path + 'results/', dates=dates)

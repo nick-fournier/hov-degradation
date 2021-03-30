@@ -1,4 +1,4 @@
-"""Tests for the files in the hov_degradation/utils folder."""
+"""Tests for the files in the hov_degradation/preprocess folder."""
 import unittest
 
 from hov_degradation.utils import data_preprocess

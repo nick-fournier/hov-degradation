@@ -73,7 +73,13 @@ class PreProcess:
 
     def getdata(self):
         data_flist = self.flist[self.flist.str.contains("station_5min_")]
-        headers = pd.read_csv('../experiments/static/5min_headers.csv', index_col=0, header=0).columns
+        # Checks whether it's running or in debug
+        if os.path.isfile('../experiments/static/5min_headers.csv'):
+            headers = pd.read_csv('../experiments/static/5min_headers.csv', index_col=0, header=0).columns
+        else:
+            headers = pd.read_csv('experiments/static/5min_headers.csv', index_col=0, header=0).columns
+
+
         df_data = pd.DataFrame()
         for f in data_flist:
             print('Loading data from file: ' + f)
@@ -493,6 +499,7 @@ class PreProcess:
         test_i210.to_csv(self.outpath + "processed/processed_i210_test_" + self.start_date + "_to_" + self.end_date + ".csv")
 
         # District 7
+        self.df_meta.to_csv(self.outpath + "processed/processed_D7_" + self.start_date + "_to_" + self.end_date + ".csv")
         df_D7.to_csv(self.outpath + "processed/processed_D7_" + self.start_date + "_to_" + self.end_date + ".csv")
         with open(self.outpath + "processed/neighbors_D7_" + self.start_date + "_to_" + self.end_date + ".json", 'w') as f:
             json.dump(neighbors_D7, f, sort_keys=True, indent=4)

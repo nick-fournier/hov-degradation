@@ -139,7 +139,7 @@ class GetDegradation:
             if bad_id == 769745 & self.joedays:
                 # Filter Sensor 769745 for direct comparison
                 datepath = self.path + 'joedates_for_769745.csv'
-                # datepath = 'hov_degradation/utils/joedates_for_769745.csv'
+                # datepath = 'hov_degradation/preprocess/joedates_for_769745.csv'
                 thesensor = self.data['Station'] == 769745
                 thedates = self.data['DATE'].isin(pd.read_csv(datepath, header=None)[0].tolist())
                 bad_data = self.data[thedates & thesensor][bad_cols]

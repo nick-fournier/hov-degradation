@@ -8,10 +8,21 @@ from palettable.colorbrewer.qualitative import Set1_7
 
 class PlotMisconfigs:
 
-    def __init__(self, path, plot_date, data_dates):
-        self.path = path
+    def __init__(self, inpath, outpath, plot_date, date_range_string):
+        # Amend string
+        if outpath[-1] is not "/":
+            self.inpath = inpath + "/"
+        else:
+            self.inpath = inpath
+
+        # Amend string
+        if outpath[-1] is not "/":
+            self.outpath = outpath + "/"
+        else:
+            self.outpath = outpath
+
         self.plot_date = plot_date
-        self.data_dates = data_dates
+        self.data_dates = date_range_string
         self.data = None
         self.meta = None
         self.neighbors = None
@@ -22,18 +33,29 @@ class PlotMisconfigs:
 
     def get_data(self):
         print("Loading traffic data...")
-        # Load the table data as CSV
-        self.data = pd.read_csv(self.path + "data/station_5min_" + self.plot_date + ".csv")
-        self.meta = pd.read_csv(self.path + "data/meta_2020-11-16.csv")
+        # Checks whether it's running or in debug
+        if os.path.isfile('../experiments/static/5min_headers.csv'):
+            headers = pd.read_csv('../experiments/static/5min_headers.csv', index_col=0, header=0).columns
+        else:
+            headers = pd.read_csv('experiments/static/5min_headers.csv', index_col=0, header=0).columns
+
+        #Load 5min data for one day specified
+        self.data = pd.read_csv(self.inpath + "d07_text_station_5min_" + self.plot_date.replace("-", "_") + ".txt.gz")
+        self.data.columns = headers
+
+        # Meta data
+        self.flist = pd.Series(os.listdir(self.inpath))
+        f = self.flist[self.flist.str.contains("meta")][0]
+        self.meta = pd.read_csv(self.inpath + f, sep="\t")
 
         # Load JSON files
-        with open(self.path + "neighbors_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "processed/neighbors_D7_" + self.data_dates + ".json") as f:
             self.neighbors = json.load(f)
 
-        with open(self.path + "results/ai_misconfigured_ids_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "results/ai_misconfigured_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
-        with open(self.path + "results/ai_reconfig_lanes_D7_2019-07_to_2019-12.json") as f:
+        with open(self.outpath + "results/manually_fixed_lane_labels.json") as f:
             self.reconfig_lanes = json.load(f)
 
         # Get unique predictions
@@ -70,7 +92,7 @@ class PlotMisconfigs:
             _df_main = self.data[self.data['Station'] == main_neighbor]
 
             # create output directory
-            outdir = self.path + "results/misconfig_plots_" + self.data_dates + "/{}".format(mis_id)
+            outdir = self.outpath + "results/misconfig_plots_" + self.data_dates + "/{}".format(mis_id)
             if not os.path.exists(outdir):
                 os.makedirs(outdir)
 
@@ -143,11 +165,3 @@ class PlotMisconfigs:
                 plt.legend()
                 plt.savefig(outdir + '/{}_fix.png'.format(mis_id), dpi=300, bbox_inches='tight')
                 plt.close()
-
-if __name__ == '__main__':
-    # path = 'experiments/district_7/'
-    path = '../../experiments/district_7/'
-    dates = '2020-12-06_to_2020-12-12'
-
-    plots = PlotMisconfigs(path=path, plot_date="2020-12-09", data_dates=dates)
-    plots.save_plots()
