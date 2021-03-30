@@ -6,8 +6,7 @@ from reporting.img_to_doc import PlotsToDocx
 import os
 import pandas as pd
 
-def main(inpath="../experiments/input/D7/5min/2021_03_01-07/",
-         outpath="../experiments/output/"):
+def main(inpath, outpath, plot_date):
 
     if not inpath:
         inpath = input("Enter the directory of input data: ")
@@ -35,13 +34,16 @@ def main(inpath="../experiments/input/D7/5min/2021_03_01-07/",
         dates = PP.start_date + "_to_" + PP.end_date
 
     fdates = dates.replace(" ", "_")
-    plot_date = "2021-03-03"  # This is a wednesday
 
     #Train the data for the dates in the data
     detections = Detection(inpath=inpath, outpath=outpath, date_range_string=fdates)
     detections.save()
 
     #Generate plots
+    pp = ''
+    while pp is '':
+        pp = input("Enter date to use for plots (yyyy-mm-dd):")
+
     if os.listdir(outpath + 'results/misconfig_plots_' + fdates):
         pp = ''
         while any([pp is 'n', pp is 'y']) is False:
@@ -65,4 +67,6 @@ def main(inpath="../experiments/input/D7/5min/2021_03_01-07/",
 
 if __name__ == "__main__":
     main(inpath="experiments/input/D7/5min/2021_03_01-07/",
-         outpath="experiments/output/")
+         outpath="experiments/output/",
+         plot_date="2021-03-03"  # This is a wednesday
+         )
