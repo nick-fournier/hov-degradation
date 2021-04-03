@@ -53,10 +53,10 @@ class PlotMisconfigs:
         self.meta = pd.read_csv(self.inpath + f, sep="\t")
 
         # Load JSON files
-        with open(self.outpath + "processed/neighbors_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "processed/processed_neighbors_D7_" + self.data_dates + ".json") as f:
             self.neighbors = json.load(f)
 
-        with open(self.outpath + "results/misconfigured_ids_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "results/analysis_misconfigured_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
         with open(self.outpath + "results/fixed_sensor_labels.json") as f:
@@ -96,7 +96,7 @@ class PlotMisconfigs:
             _df_main = self.data[self.data['Station'] == main_neighbor]
 
             # create output directory
-            outdir = self.outpath + "results/misconfig_plots_" + self.data_dates + "/{}".format(mis_id)
+            outdir = self.outpath + "results/plots_misconfigs_" + self.data_dates + "/{}".format(mis_id)
             if not os.path.exists(outdir):
                 os.makedirs(outdir)
 

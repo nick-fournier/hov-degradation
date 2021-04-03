@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import json
+import datetime
 
 from pandas.tseries.holiday import USFederalHolidayCalendar
 from os import path
@@ -63,6 +64,8 @@ class GetDegradation:
         f = self.flist[self.flist.str.contains("meta")][0]
         self.meta = pd.read_csv(self.inpath + f, sep="\t")
 
+        self.district = str(self.meta.loc[0, 'District'])
+
         self.bad_ids = bad_sensors
         self.peak_am = peak_hours['peak_am']
         self.peak_pm = peak_hours['peak_pm']
@@ -106,7 +109,16 @@ class GetDegradation:
         return df_neighbors
 
     def get_sensor_data(self):
-        prefiltered_path = self.outpath + 'results/extracted_sensors_hourly.csv'
+        prefiltered_path = self.outpath + 'processed/degradation_sensors_hourly_D' + self.district + '_lastsave.csv'
+        if not self.saved and os.path.isfile(prefiltered_path):
+            pp = ''
+            while any([pp is 'n', pp is 'y']) is False:
+                pp = input("Use saved extracted hourly sensor data, or run it again? (y/n):")
+                if len(pp) > 1:
+                    pp = pp[0].lower()
+                if pp is "y":
+                    self.saved = True
+
         if self.saved and os.path.isfile(prefiltered_path):
                 df_sensors = pd.read_csv(prefiltered_path)
         else:
@@ -132,8 +144,14 @@ class GetDegradation:
             # Bind together &  Rename Station length to get rid of space
             df_sensors = pd.concat(misconfigs)
             df_sensors.rename(columns={"Station Length": "Length"}, inplace=True)
+
             #Save
             df_sensors.to_csv(prefiltered_path)
+
+        # Get start/end dates
+        the_dates = pd.to_datetime(df_sensors.Timestamp, format='%m/%d/%Y %H:%M:%S')
+        self.date_string = the_dates.min().strftime('%m-%Y') + "_to_" + the_dates.max().strftime('%Y-%m')
+
         return df_sensors
 
     def get_vhtvmt(self, df, suffix):
@@ -237,10 +255,8 @@ class GetDegradation:
 
         return df_results
 
-    def save(self, dates):
-        # Saving
-        # dates = get_dates(inpath)
-        self.results.to_csv(self.outpath + 'results/degradation_results_' + dates + '.csv', index=False)
+    def save(self):
+        self.results.to_csv(self.outpath + 'results/degradation_results_D' + self.district + "_" + self.date_string + '.csv', index=False)
 
 
 

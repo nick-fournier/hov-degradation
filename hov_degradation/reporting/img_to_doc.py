@@ -20,10 +20,10 @@ class PlotsToDocx:
 
     def get_labels(self):
        # Load JSON files
-        with open(self.path + "processed/neighbors_D7_" + self.dates + ".json") as f:
+        with open(self.path + "processed/analysis_neighbors_D7_" + self.dates + ".json") as f:
             neighbors = json.load(f)
 
-        with open(self.path + "results/ai_misconfigured_ids_D7_" + self.dates + ".json") as f:
+        with open(self.path + "results/analysis__misconfigured_ids_D7_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
         with open(self.path + "results/fixed_sensor_labels.json") as f:
@@ -51,7 +51,7 @@ class PlotsToDocx:
         flist = pd.Series(os.listdir(self.path + 'results'))
         f = list(flist[flist.str.contains("meta")])[0]
         df_meta = pd.read_csv(self.path + 'results/' + f)
-        df_pred = pd.read_csv(self.path + 'results/ai_detections_table_D7_' + self.dates + '.csv')
+        df_pred = pd.read_csv(self.path + 'results/analysis__detections_table_D7_' + self.dates + '.csv')
 
         total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
         analyzed = df_pred.iloc[:, 0].count()
@@ -70,7 +70,7 @@ class PlotsToDocx:
         # Set up the empty doc
         doc = Document()
 
-        plot_path = 'results/misconfig_plots_'
+        plot_path = 'results/plots_misconfigs_'
         strip_path = 'results/strip_maps/'
         date_string = pd.to_datetime(self.plot_date).day_name() + ' ' + self.plot_date
 
@@ -108,7 +108,8 @@ class PlotsToDocx:
                 run.add_picture(figpath + id_dir + '_fix.png', width=Inches(6))
 
             run.add_break()
-            run.add_picture(self.path + strip_path + id_dir + "_strip.png", width=Inches(6))
+            if os.path.isfile(self.path + strip_path + id_dir + "_strip.png"):
+                run.add_picture(self.path + strip_path + id_dir + "_strip.png", width=Inches(6))
             run.add_text('Comments:')
             run.add_break()
             run.add_break(WD_BREAK.PAGE)

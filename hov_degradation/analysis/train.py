@@ -27,7 +27,7 @@ class Detection:
         self.outpath = check_path(outpath)
         self.inpath = check_path(inpath)
 
-        self.hyperparam_path = self.outpath + 'results/hyperparameters_' + self.dates + '.json'
+        self.hyperparam_path = self.outpath + 'results/analysis_hyperparameters_' + self.dates + '.json'
 
         self.hyperparams = None
         self.scores = {}
@@ -45,7 +45,7 @@ class Detection:
             os.mkdir(self.outpath)
             os.mkdir(self.outpath + "results")
 
-        with open(self.outpath + "processed/neighbors_D" + self.district + "_" + self.dates + ".json") as f:
+        with open(self.outpath + "processed/processed_neighbors_D" + self.district + "_" + self.dates + ".json") as f:
             self.neighbors = json.load(f)
         self.train_df_i210 = pd.read_csv(self.outpath + "processed/processed_i210_train_" + self.dates + ".csv", index_col=0).dropna()
         self.test_df_i210 = pd.read_csv(self.outpath + "processed/processed_i210_test_" + self.dates + ".csv", index_col=0).dropna()
@@ -251,15 +251,15 @@ class Detection:
 
     def save(self):
         # store dataframe
-        self.df_District.to_csv(self.outpath + "results/detections_table_D" + self.district + "_" + self.dates + ".csv")
-        self.misconfig_meta.to_csv(self.outpath + "results/misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
+        self.df_District.to_csv(self.outpath + "results/analysis_detections_table_D" + self.district + "_" + self.dates + ".csv")
+        self.misconfig_meta.to_csv(self.outpath + "results/analysis_misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
 
         # Save scores
-        with open(self.outpath + 'results/scores_' + self.dates + '.json', 'w') as f:
+        with open(self.outpath + 'results/analysis_scores_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.scores, f, sort_keys=True, indent=4)
 
         # Save scores
-        with open(self.outpath + 'results/misconfigured_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
+        with open(self.outpath + 'results/analysis_misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.misconfig_ids, f, sort_keys=True, indent=4)
 
         print("Saved")

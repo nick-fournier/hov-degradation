@@ -17,6 +17,7 @@ def main(inpath_detection, inpath_degradation, outpath, plot_date):
 
     #### PREPROCESSING ####
     #Check if preprocessed already
+    print("Running Preprocessing...")
     if os.listdir(outpath + "processed"):
         flist = pd.Series(os.listdir(outpath + "processed"))
         dates = [x[-28::].replace(".csv", "") for x in flist[flist.str.contains('processed')]]
@@ -38,18 +39,20 @@ def main(inpath_detection, inpath_degradation, outpath, plot_date):
 
     fdates = dates.replace(" ", "_")
 
-    #### TRAINING ####
+    #### ANALYSIS ####
+    print("Running analysis...")
     detections = Detection(inpath=inpath_detection, outpath=outpath, date_range_string=fdates)
     detections.save()
 
     #### PLOTS ####
+    print("Plotting results...")
     #Generate plot files
     if not plot_date:
         plot_date = ''
         while plot_date is '':
             plot_date = input("Enter date to use for plots (yyyy-mm-dd):")
 
-    if os.listdir(outpath + 'results/misconfig_plots_' + fdates):
+    if os.listdir(outpath + 'results/plots_misconfigs_' + fdates):
         pp = ''
         while any([pp is 'n', pp is 'y']) is False:
             pp = input("Plots already exists, regenerate plots? (y/n):")
@@ -58,9 +61,9 @@ def main(inpath_detection, inpath_degradation, outpath, plot_date):
             if pp is "y":
                 plots = PlotMisconfigs(inpath=inpath_detection, outpath=outpath, plot_date=plot_date, date_range_string=fdates)
                 plots.save_plots()
-
+    print("Printing to word doc...")
     #Create word document out of plots for easier viewing
-    if not any(pd.Series(os.listdir(outpath + 'results/')).str.contains('HOV plots')):
+    if not any(pd.Series(os.listdir(outpath + 'results/')).str.contains('docx')):
         pp = ''
         while any([pp is 'n', pp is 'y']) is False:
             pp = input("Docx already exists, regenerate Docx? (y/n):")
@@ -72,6 +75,7 @@ def main(inpath_detection, inpath_degradation, outpath, plot_date):
 
 
     #### DEGRADATION ####
+    print("Running degradation analysis...")
     if not os.path.isfile(outpath + 'fixed_sensor_labels.json'):
         # These are the bad IDs and suspected mislabeled lane
         reconfigs = {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
@@ -96,7 +100,7 @@ def main(inpath_detection, inpath_degradation, outpath, plot_date):
                 degraded.save(dates)
     else:
         degraded = GetDegradation(inpath_degradation, outpath, df_bad, saved=True)
-        degraded.save(dates)
+        degraded.save()
 
     print("HOV Degradation Analysis Complete")
 
