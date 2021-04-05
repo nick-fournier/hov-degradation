@@ -129,4 +129,6 @@ After reviewing the detection results, the lane corrections must be placed into 
        769745,  Misconfigured,  Lane 3
        774055,  Misconfigured,  Lane 1
        ```
-where `ID` is the detected misconfigured HOV sensor ID, `issue` is a descriptor field, and `real_lane` is the corrected maineline lane. There is no need to provide a specific corrected sensor ID here, the ID will be pulled from the `neighbors` file. 
+where `ID` is the detected misconfigured HOV sensor ID, `issue` is a descriptor field, and `real_lane` is the corrected maineline lane. There is no need to provide a specific corrected sensor ID here, the ID will be pulled from the `neighbors` file.
+
+After creating this file, run the code again, following the prompts to run degradation.
