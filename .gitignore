@@ -9,4 +9,5 @@
 __pycache__
 /experiments/input/
 /experiments/output/
+/build/
 hov_degradation.egg-info/
