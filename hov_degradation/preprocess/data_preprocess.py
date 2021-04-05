@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import json
 import os
-import sys
-import gzip
 from scipy.stats import ks_2samp
 
 FREEWAYS = {

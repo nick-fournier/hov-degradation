@@ -19,8 +19,9 @@ setup(
     install_requires=_read_requirements_file(),
     description='hov-analysis: Modeling and analysis to detect anomalies in '
                 'HOV stations in District 7 of California',
-    author='Yashar Farid',
-    url='https://github.com/Yasharzf/hov-degradation',
-    author_email='yzfarid@berkeley.edu',
+    author='Yashar Farid, modified by Nicholas Fournier',
+    url='https://github.com/nick-fournier/hov-degradation',
+    author_email='yzfarid@berkeley.edu and nick.fournier@berkeley.edu',
     zip_safe=False,
+    entry_points={"console_scripts": ["hov-analysis=hov_degradation.__main__:main"]},
 )

@@ -4,7 +4,7 @@ import pandas as pd
 import os
 import json
 from cycler import cycler
-from palettable.colorbrewer.qualitative import Set1_7
+# from palettable.colorbrewer.qualitative import Set1_7
 
 class PlotMisconfigs:
 
@@ -75,7 +75,14 @@ class PlotMisconfigs:
 
     def save_plots(self):
         # Plot each prediction
-        colors = Set1_7.mpl_colors
+        # colors = Set1_7.mpl_colors
+        colors = [(0.8941176470588236, 0.10196078431372549, 0.10980392156862745),
+                  (0.21568627450980393, 0.49411764705882355, 0.7215686274509804),
+                  (0.30196078431372547, 0.6862745098039216, 0.2901960784313726),
+                  (0.596078431372549, 0.3058823529411765, 0.6392156862745098),
+                  (1.0, 0.4980392156862745, 0.0),
+                  (1.0, 1.0, 0.2),
+                  (0.6509803921568628, 0.33725490196078434, 0.1568627450980392)]
 
         for c, mis_id in enumerate(list(self.df_mis_ids['id'])):
             count = str(c + 1) + '/' + str(len(self.df_mis_ids))

@@ -1,10 +1,8 @@
 import os
 import pandas as pd
 import json
-import datetime
 
 from pandas.tseries.holiday import USFederalHolidayCalendar
-from os import path
 
 def check_path(path):
     if path[-1] is not "/":
