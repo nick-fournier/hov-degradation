@@ -12,7 +12,7 @@ To run the code, you can either download and run the standalone the executable f
 ### Executable
 To run the executable:
 1. Download the file 
-2. Create folders input and output folders
+2. Create the input and output folders
 3. Run the executable for:
     1. Erroneous HOV detection on 5-minute traffic data
     2. Degradation analysis on hourly traffic data (requires HOV lane corrections)
