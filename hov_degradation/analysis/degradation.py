@@ -148,7 +148,7 @@ class GetDegradation:
 
         # Get start/end dates
         the_dates = pd.to_datetime(df_sensors.Timestamp, format='%m/%d/%Y %H:%M:%S')
-        self.date_string = the_dates.min().strftime('%m-%Y') + "_to_" + the_dates.max().strftime('%Y-%m')
+        self.date_string = the_dates.min().strftime('%Y-%m') + "_to_" + the_dates.max().strftime('%Y-%m')
 
         return df_sensors
 

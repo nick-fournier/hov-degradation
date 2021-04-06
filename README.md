@@ -44,9 +44,11 @@ If the setup.py installations fails, you can install the contents using pip from
 pip install -e .
 ```
 
+The point of entry for the program is `hov_degradation_launcher.py` (this is just a pointer to `hov_degradation/__main__.py`). To run the program, simple run the launcher script, then a command prompt will ask you a series of inputs.   
+
 ## Usage
 
-To run the code, it requires the file path for an input and output data folder to direct the code. I've organized my directory like this, but you can input custom file paths to any desired input and output locations:
+To run the program, it requires the file paths for an input and output data folders to direct the code to find. I've organized my directory like this, but you can input custom file paths to any desired input and output locations:
 ```
 HOV degradation main directory
 ├─ hov_degradation code
@@ -110,25 +112,39 @@ output/results/
 ### 3. Reporting \& Manual Evaluation
 To evaluate the impact that the misconfigured sensors had on degradation, the detected sensors must be manually evaluated to determine whether a correction can be determined (e.g., label for HOV lane is swapped with a mainline lane).
 
-To assist in this process, the detection results will generate individual plots in the output folder `output/results/plots_misconfigs_<start date>_to_<end date>`, as well as a word docx file in `results/HOV plots_<plot date>.docx` containing all plots.
+The detection results will generate individual plots for each sensor comparing the target HOV sensor to its upstream/downstream neighbors (longitudinal comparison) and its adjacent mainline sensors (lateral comparison). Image files for these plots are saved in a new folder within the `output/results` folder, but to further assist in this evaluation process, a word document assembling all the plots together is generated.
 
-If strip maps for the respective sensors are available, they may be placed in the `results/strip_maps` folder and will be included in the docx file. 
+```
+`output/results/
+    ├─HOV plots_<plot date>.docx                   #Plots assembled in one word doc
+    └─plots_misconfigs_<start date>_to_<end date>  #Individual image file for each plot
+```
+
+The PeMS database uses strip maps to orient the sensor along the freeway. If a strip map image is available for the respective sensors, they may be placed in the `results/strip_maps` folder and will be included in the docx file.
 
 ### 4. Degradation
 After reviewing the detection results, the lane corrections must be placed into a comma separated value (CSV) file titled: `results\fixed_sensor_labels.csv`. The contents of the file take the format:
 
-       ```
-       ID,      issue,          real_lane
-       717822,  Misconfigured,  Lane 1
-       718270,  Misconfigured,  Lane 2
-       718313,  Misconfigured,  Lane 1
-       762500,  Misconfigured,  Lane 2
-       762549,  Misconfigured,  Lane 1
-       768743,  Misconfigured,  Lane 4
-       769238,  Misconfigured,  Lane 1
-       769745,  Misconfigured,  Lane 3
-       774055,  Misconfigured,  Lane 1
-       ```
-where `ID` is the detected misconfigured HOV sensor ID, `issue` is a descriptor field, and `real_lane` is the corrected maineline lane. There is no need to provide a specific corrected sensor ID here, the ID will be pulled from the `neighbors` file.
+    ```
+    ID,      issue,          real_lane
+    717822,  Misconfigured,  Lane 1
+    718270,  Misconfigured,  Lane 2
+    718313,  Misconfigured,  Lane 1
+    762500,  Misconfigured,  Lane 2
+    762549,  Misconfigured,  Lane 1
+    768743,  Misconfigured,  Lane 4
+    769238,  Misconfigured,  Lane 1
+    769745,  Misconfigured,  Lane 3
+    774055,  Misconfigured,  Lane 1
+    ```
+where `ID` is the detected misconfigured HOV sensor ID, `issue` is a descriptor field, and `real_lane` is the corrected maineline lane. There is no need to provide a specific corrected sensor ID here, the ID will be pulled from the `neighbors` file. After creating this file, run the code again and follow the prompts to run degradation.
 
-After creating this file, run the code again, following the prompts to run degradation.
+Degradation analysis will create two output files:
+
+```
+output/results/
+   ├─ degradation_results_D<district #>_<start date>_to_<end date>.csv
+   └─ degradation_sensors_hourly_D<district #>_lastsave.csv
+```
+
+The first file, `degradation_results_D<district #>_<start date>_to_<end date>.csv`, is the actual degradation results. The second file, `degradation_sensors_hourly_D<district #>_lastsave.csv` is a temporary file containing extracted data for the detected misconfigured sensors. This functions as cached data in case you would like to re-run the degradation on the sensors without having the re-process the hourly data, which is large data file.
