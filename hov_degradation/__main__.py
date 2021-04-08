@@ -9,142 +9,184 @@ import numpy.random.bounded_integers
 import numpy.random.entropy
 import os
 import pandas as pd
+import warnings
 
-
-def main(inpath_detection=None,
-         inpath_degradation=None,
-         outpath=None,
-         plot_date=None
-         ):
-
-    print("Welcome to erroneous HOV detection and degradatation analysis!")
-
-    degradation = None
-    while not inpath_detection:
-        degradation = input("Do you want to run erroneous detection (1) or degradation analysis (2)?\r"
-                          "(Enter '1' or '2' for detection or degradation\r"
-                          "NOTE: You must provide a corrected HOV sensor labels before running degradation analysis.")
-        if degradation != 1 or degradation != 2:
-            degradation = None
-
-
-    #### PREPROCESSING ####
-    if degradation == 1:
-
-        while not inpath_detection:
-            inpath_detection = input("Enter the directory of 5-min traffic count input data: ")
-            if not os.path.isdir(inpath_detection) or len(os.listdir(inpath_detection)) == 0:
-                print("Invalid input path")
-                inpath_detection = None
-
-        while not outpath:
-            outpath = input("Enter location for processed output directory: ")
-
-        while not plot_date:
-            plot_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
-
-        #Check if preprocessed already
-        print("Running Preprocessing...")
-        if os.listdir(outpath + "processed"):
-            flist = pd.Series(os.listdir(outpath + "processed"))
-            dates = [x[-28::].replace(".csv", "") for x in flist[flist.str.contains('processed')]]
-            dates = pd.Series(dates).unique()[0].replace("_", " ")
-            pp = ''
-            while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Processed data already exists for " + dates +
-                           ". Do you want to run pre-processing again (y/n)?: ")
-                if len(pp) > 1:
-                    pp = pp[0].lower()
-                if pp is "y":
-                    PP = PreProcess(inpath=inpath_detection, outpath=outpath)
-                    PP.save()
-                    dates = PP.start_date + "_to_" + PP.end_date
-        else:
-            PP = PreProcess(inpath=inpath_detection, outpath=outpath)
-            PP.save()
-            dates = PP.start_date + "_to_" + PP.end_date
-
-        fdates = dates.replace(" ", "_")
-
-        #### ANALYSIS ####
-        print("Running analysis...")
-        detections = Detection(inpath=inpath_detection, outpath=outpath, date_range_string=fdates)
-        detections.save()
-
-        #### PLOTS ####
-        print("Plotting results...")
-        #Generate plot files
-        if os.listdir(outpath + 'results/plots_misconfigs_' + fdates):
-            pp = ''
-            while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Plots already exists, regenerate plots? (y/n): ")
-                if len(pp) > 1:
-                    pp = pp[0].lower()
-                if pp is "y":
-                    plots = PlotMisconfigs(inpath=inpath_detection, outpath=outpath, plot_date=plot_date, date_range_string=fdates)
-                    plots.save_plots()
-
-        print("Printing to word doc...")
-        #Create word document out of plots for easier viewing
-        if not any(pd.Series(os.listdir(outpath + 'results/')).str.contains('docx')):
-            pp = ''
-            while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Docx already exists, regenerate Docx? (y/n): ")
-                if len(pp) > 1:
-                    pp = pp[0].lower()
-                if pp is "y":
-                    document = PlotsToDocx(outpath=outpath, plot_date=plot_date, date_range_string=fdates)
-                    document.save()
-
+def get_fixed(path):
+    if not os.path.isfile(path + 'fixed_sensor_labels.json'):
+        # These are the bad IDs and suspected mislabeled lane
+        reconfigs = {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
+                     'issue': ['Misconfigured'] * 9,
+                     'real_lane': ['Lane 1', 'Lane 2', 'Lane 1', 'Lane 2',
+                                   'Lane 1', 'Lane 4', 'Lane 1', 'Lane 3', 'Lane 1']}
+        df_bad = pd.DataFrame(reconfigs)
+        df_bad.to_csv(path + 'fixed_sensor_labels.csv', index=False)
+        reconfigs_to_json(path + 'fixed_sensor_labels.json', df_bad)
     else:
-        #### DEGRADATION ####
-        while not inpath_degradation:
-            inpath_degradation = input("Enter the directory of hourly traffic count input data for degradation analysis: ")
-            if not os.path.isdir(inpath_detection) or len(os.listdir(inpath_detection)) == 0:
-                print("Invalid input path")
-                inpath_detection = None
+        # df_bad = pd.read_json(outpath + 'fixed_sensor_labels.json')
+        df_bad = pd.read_csv(path + 'fixed_sensor_labels.csv')
 
-        while not outpath:
-            outpath = input("Enter location for processed output directory: ")
+    return df_bad
 
-        print("Running degradation analysis...")
+def check_path(path):
+    if path[-1] is not "/":
+        return path + "/"
+    else:
+        return path
 
-        if not os.path.isfile(outpath + 'fixed_sensor_labels.json'):
-            # These are the bad IDs and suspected mislabeled lane
-            reconfigs = {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
-                         'issue': ['Misconfigured']*9,
-                         'real_lane': ['Lane 1', 'Lane 2', 'Lane 1', 'Lane 2',
-                                       'Lane 1', 'Lane 4', 'Lane 1', 'Lane 3', 'Lane 1']}
-            df_bad = pd.DataFrame(reconfigs)
-            df_bad.to_csv(outpath + 'results/fixed_sensor_labels.csv', index=False)
-            reconfigs_to_json(outpath + 'results/fixed_sensor_labels.json', df_bad)
+class main:
+    def __init__(self,
+                 detection_data_path=None,
+                 degradation_data_path=None,
+                 output_path=None,
+                 plotting_date=None
+                 ):
+
+        print("Welcome to erroneous HOV detection and degradation analysis!")
+        degradation = None
+        while not degradation:
+            degradation = input("Do you want to run erroneous detection (1) or degradation analysis (2)?: ")
+            if degradation != '1' and degradation != '2':
+                degradation = None
+
+        warnings.filterwarnings('ignore')
+
+        #### PREPROCESSING ####
+        if degradation == '1':
+            while not detection_data_path:
+                detection_data_path = input("Enter the directory of 5-min traffic count input data: ")
+            self.inpath_detection = check_path(detection_data_path)
+
+            while not output_path:
+                output_path = input("Enter location for processed output directory: ")
+            self.outpath = check_path(output_path)
+
+            while not plotting_date:
+                plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
+            self.plot_date = plotting_date
+
+            #Check if preprocessed already
+            self.subout = list(filter(None, self.inpath_detection.split('/')))[-1]
+            self.run_preprocessing()
+            self.datestring = [x for x in os.listdir(self.outpath + self.subout + "/processed/") if 'neighbors' in x][0][-29:-5]
+
+            #### ANALYSIS ####
+            self.run_analysis()
+
+            #### PLOTS ####
+            self.run_plotting("Plots already exists, regenerate plots? (y/n): ")
+
         else:
-            # df_bad = pd.read_json(outpath + 'results/fixed_sensor_labels.json')
-            df_bad = pd.read_csv(outpath + 'results/fixed_sensor_labels.csv')
+            #### DEGRADATION ####
+            while not degradation_data_path:
+                degradation_data_path = input("Enter the directory of hourly traffic count input data for degradation analysis: ")
+            self.inpath_degradation = check_path(degradation_data_path)
 
-        if any(pd.Series(os.listdir(outpath + 'results')).str.contains('degradation_results')):
+            while not output_path:
+                output_path = input("Enter location for processed output directory: ")
+            self.outpath = check_path(output_path)
+
+            # while not plotting_date:
+            #     plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
+            # self.plot_date = plotting_date
+
+            self.subout = list(filter(None, self.inpath_degradation.split('/')))[-1]
+            self.run_degradation()
+
+            # #### REPLOTS ####
+            # self.run_plotting("Do you want to update the plots with degradation results? (y/n): ")
+
+        exit = 'n'
+        while exit == 'n':
+            exit = input("Analysis Complete, exit? (y/n): ")
+
+
+
+    def run_preprocessing(self):
+        the_path = self.outpath + self.subout + '/processed'
+        if os.path.isdir(the_path) and len(os.listdir(the_path)) > 0:
             pp = ''
+            # Asks if you want to run it again
             while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Degredation results already exist, run it again? (y/n): ")
+                pp = input("Processed data already exists for " + self.subout +
+                           ". Do you want to run pre-processing (y/n)?: ")
                 if len(pp) > 1:
                     pp = pp[0].lower()
                 if pp is "y":
-                    degraded = GetDegradation(inpath_degradation, outpath, df_bad, saved=False)
-                    degraded.save()
+                    PreProcess(inpath=self.inpath_detection, outpath=self.outpath + self.subout).save()
+        # Runs it if it doesn't exist
         else:
-            degraded = GetDegradation(inpath_degradation, outpath, df_bad, saved=True)
-            degraded.save()
+            PreProcess(inpath=self.inpath_detection, outpath=self.outpath + self.subout).save()
 
-    print("Analysis Complete")
-    exit = 'n'
-    while exit == 'n':
-        exit = input("Exit? (y/n): ")
+    def run_analysis(self):
+        the_path = self.outpath + self.subout + '/plots_misconfigs_' + self.plot_date
+        if os.path.isdir(the_path) and len(os.listdir(the_path)) > 0:
+            pp = ''
+            # Asks if you want to run it again
+            while any([pp is 'n', pp is 'y']) is False:
+                pp = input("Analysis results already exists for " + self.subout +
+                           ". Do you want to run again (y/n)?: ")
+                if len(pp) > 1:
+                    pp = pp[0].lower()
+                if pp is "y":
+                    Detection(inpath=self.inpath_detection,
+                              outpath=self.outpath + self.subout,
+                              date_range_string=self.datestring).save()
+        # Runs it if it doesn't exist
+        else:
+            Detection(inpath=self.inpath_detection,
+                      outpath=self.outpath + self.subout,
+                      date_range_string=self.datestring).save()
 
+    def run_plotting(self, text):
+        # Generate plot files
+        the_path = self.outpath + self.subout + '/plots_misconfigs_' + self.plot_date
+        if os.path.isdir(the_path) and len(os.listdir(the_path)) > 0:
+            pp = ''
+            # Asks if you want to run it again
+            while any([pp is 'n', pp is 'y']) is False:
+                pp = input(text)
+                if len(pp) > 1:
+                    pp = pp[0].lower()
+                if pp is "y":
+                    PlotMisconfigs(inpath=self.inpath_detection,
+                                   outpath=self.outpath + self.subout,
+                                   plot_date=self.plot_date,
+                                   date_range_string=self.datestring)
+                    PlotsToDocx(outpath=self.outpath + self.subout,
+                                plot_date=self.plot_date,
+                                date_range_string=self.datestring
+                                ).save()
 
-if __name__ == "__main__":
-    main()
-    # main(inpath_detection="../experiments/input/D7/5min/2021_03_01-07/",
-    #      inpath_degradation="../experiments/input/D7/hourly/2020/",
-    #      outpath="../experiments/output/",
-    #      plot_date="2021-03-03"  # This is a wednesday
-    #      )
+        # Runs it if it doesn't exist
+        else:
+            PlotMisconfigs(inpath=self.inpath_detection,
+                           outpath=self.outpath + self.subout,
+                           plot_date=self.plot_date,
+                           date_range_string=self.datestring)
+
+            PlotsToDocx(outpath=self.outpath + self.subout,
+                        plot_date=self.plot_date,
+                        date_range_string=self.datestring
+                        ).save()
+
+    def run_degradation(self):
+        df_bad = get_fixed(self.outpath)
+        the_path = self.outpath + self.subout + '/degradation/'
+        if os.path.isdir(the_path) and len(os.listdir(the_path)) > 0:
+            pp = ''
+            # Asks if you want to run it again
+            while any([pp is 'n', pp is 'y']) is False:
+                pp = input("Degredation analysis already exist, run it again? (y/n): ")
+                if len(pp) > 1:
+                    pp = pp[0].lower()
+                if pp is "y":
+                    GetDegradation(inpath=self.inpath_degradation,
+                                   outpath=self.outpath + self.subout,
+                                   bad_sensors=df_bad,
+                                   saved=False).save()
+        # Runs it if it doesn't exist
+        else:
+            GetDegradation(inpath=self.inpath_degradation,
+                           outpath=self.outpath + self.subout,
+                           bad_sensors=df_bad,
+                           saved=False).save()

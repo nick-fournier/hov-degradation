@@ -477,8 +477,8 @@ class PreProcess:
 
     def save(self):
         if not os.path.isdir(self.outpath):
-            os.mkdir(self.outpath)
-            os.mkdir(self.outpath + "processed")
+            os.makedirs(self.outpath)
+            os.makedirs(self.outpath + "processed")
 
         print("Pre-processing I-210 test/train data...")
         # I210
@@ -488,7 +488,7 @@ class PreProcess:
         print("Pre-processing District data...")
         df_District, _, neighbors_District = self.preprocess(location='5min', split=False)
 
-        print("Saving results...")
+        print("Saving analysis...")
         # I210
         train_i210.to_csv(self.outpath + "processed/processed_i210_train_" + self.start_date + "_to_" + self.end_date + ".csv")
         test_i210.to_csv(self.outpath + "processed/processed_i210_test_" + self.start_date + "_to_" + self.end_date + ".csv")
@@ -496,6 +496,6 @@ class PreProcess:
         # District
         # self.df_meta.to_csv(self.outpath + "processed/processed_meta_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".csv")
         df_District.to_csv(self.outpath + "processed/processed_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".csv")
-        with open(self.outpath + "processed/neighbors_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".json", 'w') as f:
+        with open(self.outpath + "processed/processed_neighbors_D" + self.district + "_" + self.start_date + "_to_" + self.end_date + ".json", 'w') as f:
             json.dump(neighbors_District, f, sort_keys=True, indent=4)
         print("Done")

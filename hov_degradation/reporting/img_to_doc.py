@@ -11,23 +11,34 @@ from docx.shared import Inches
 
 class PlotsToDocx:
     def __init__(self, outpath, plot_date, date_range_string):
-        self.path = outpath
+        # Amend string
+        if outpath[-1] is not "/":
+            self.path = outpath + "/"
+        else:
+            self.path = outpath
+
         self.dates = date_range_string
         self.plot_date = plot_date
         self.agg_results = self.aggregate_results()
         self.mis_id_text, self.neighbors, self.reconfig_ids = self.get_labels()
+
+
+
         self.doc = self.img_to_doc()
 
     def get_labels(self):
        # Load JSON files
-        with open(self.path + "processed/analysis_neighbors_D7_" + self.dates + ".json") as f:
+        with open(self.path + "processed/processed_neighbors_D7_" + self.dates + ".json") as f:
             neighbors = json.load(f)
 
-        with open(self.path + "results/analysis__misconfigured_ids_D7_" + self.dates + ".json") as f:
+        with open(self.path + "analysis/analysis_misconfigs_ids_D7_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
-        with open(self.path + "results/fixed_sensor_labels.json") as f:
-            reconfig_ids = json.load(f)
+        if os.path.isfile(self.path + "analysis/fixed_sensor_labels.json"):
+            with open(self.path + "analysis/fixed_sensor_labels.json") as f:
+                reconfig_ids = json.load(f)
+        else:
+            reconfig_ids = {}
 
         # Get unique predictions
         mis_ids_unique = mis_ids['classification'] + mis_ids['unsupervised']
@@ -48,10 +59,10 @@ class PlotsToDocx:
 
     def aggregate_results(self):
         # Meta data
-        flist = pd.Series(os.listdir(self.path + 'results'))
+        flist = pd.Series(os.listdir(self.path + 'analysis'))
         f = list(flist[flist.str.contains("meta")])[0]
-        df_meta = pd.read_csv(self.path + 'results/' + f)
-        df_pred = pd.read_csv(self.path + 'results/analysis__detections_table_D7_' + self.dates + '.csv')
+        df_meta = pd.read_csv(self.path + 'analysis/' + f)
+        df_pred = pd.read_csv(self.path + 'analysis/analysis_detections_table_D7_' + self.dates + '.csv')
 
         total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
         analyzed = df_pred.iloc[:, 0].count()
@@ -70,8 +81,18 @@ class PlotsToDocx:
         # Set up the empty doc
         doc = Document()
 
-        plot_path = 'results/plots_misconfigs_'
-        strip_path = 'results/strip_maps/'
+        plot_path = 'plots_misconfigs_'
+        strip_path = ''
+        i = 0
+        dir = self.path
+        while dir:
+            if os.path.isdir(dir) and "strip_maps" in os.listdir(dir):
+                strip_path = dir + "/strip_maps/"
+                break
+            print(dir)
+            i += 1
+            dir = "/".join(self.path.split('/')[:-i])
+
         date_string = pd.to_datetime(self.plot_date).day_name() + ' ' + self.plot_date
 
         para = doc.add_paragraph()
@@ -108,8 +129,8 @@ class PlotsToDocx:
                 run.add_picture(figpath + id_dir + '_fix.png', width=Inches(6))
 
             run.add_break()
-            if os.path.isfile(self.path + strip_path + id_dir + "_strip.png"):
-                run.add_picture(self.path + strip_path + id_dir + "_strip.png", width=Inches(6))
+            if os.path.isfile(strip_path + id_dir + "_strip.png"):
+                run.add_picture(strip_path + id_dir + "_strip.png", width=Inches(6))
             run.add_text('Comments:')
             run.add_break()
             run.add_break(WD_BREAK.PAGE)
@@ -117,7 +138,7 @@ class PlotsToDocx:
         return doc
 
     def save(self):
-        self.doc.save(self.path + '/results/HOV plots_' + str(date.today()) + '.docx')
+        self.doc.save(self.path + '/analysis/HOV plots_' + str(date.today()) + '.docx')
 
 
 

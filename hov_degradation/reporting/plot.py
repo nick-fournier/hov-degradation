@@ -1,4 +1,4 @@
-"""Script for plotting the results"""
+"""Script for plotting the analysis"""
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
@@ -30,9 +30,9 @@ class PlotMisconfigs:
         self.df_mis_ids = None
         self.reconfig_lanes = None
         self.get_data()
+        self.save()
 
     def get_data(self):
-        print("Loading traffic data...")
         # Checks whether it's running or in debug
         if os.path.isfile('static/5min_headers.csv'):
             headers = pd.read_csv('static/5min_headers.csv', index_col=0, header=0).columns
@@ -56,11 +56,14 @@ class PlotMisconfigs:
         with open(self.outpath + "processed/processed_neighbors_D7_" + self.data_dates + ".json") as f:
             self.neighbors = json.load(f)
 
-        with open(self.outpath + "results/analysis_misconfigured_ids_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "analysis/analysis_misconfigs_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
-        with open(self.outpath + "results/fixed_sensor_labels.json") as f:
-            self.reconfig_lanes = json.load(f)
+        if os.path.isfile(self.outpath + "analysis/fixed_sensor_labels.json"):
+            with open(self.outpath + "analysis/fixed_sensor_labels.json") as f:
+                self.reconfig_lanes = json.load(f)
+        else:
+            self.reconfig_lanes = {}
 
         # Get unique predictions
         mis_ids_unique = self.dict_mis_ids['classification'] + self.dict_mis_ids['unsupervised']
@@ -73,7 +76,7 @@ class PlotMisconfigs:
             method = ' & '.join(method)
             self.df_mis_ids = self.df_mis_ids.append(pd.DataFrame({'id': [id], 'method': [method]}))
 
-    def save_plots(self):
+    def save(self):
         # Plot each prediction
         # colors = Set1_7.mpl_colors
         colors = [(0.8941176470588236, 0.10196078431372549, 0.10980392156862745),
@@ -103,7 +106,7 @@ class PlotMisconfigs:
             _df_main = self.data[self.data['Station'] == main_neighbor]
 
             # create output directory
-            outdir = self.outpath + "results/plots_misconfigs_" + self.data_dates + "/{}".format(mis_id)
+            outdir = self.outpath + "plots_misconfigs_" + self.data_dates + "/{}".format(mis_id)
             if not os.path.exists(outdir):
                 os.makedirs(outdir)
 

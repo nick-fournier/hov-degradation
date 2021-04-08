@@ -60,8 +60,7 @@ class GetDegradation:
         # Meta data
         self.flist = pd.Series(os.listdir(self.inpath))
         f = self.flist[self.flist.str.contains("meta")][0]
-        self.meta = pd.read_csv(self.inpath + f, sep="\t")
-
+        self.meta = pd.read_csv(self.inpath + f)
         self.district = str(self.meta.loc[0, 'District'])
 
         self.bad_ids = bad_sensors
@@ -107,14 +106,17 @@ class GetDegradation:
         return df_neighbors
 
     def get_sensor_data(self):
-        prefiltered_path = self.outpath + 'processed/degradation_sensors_hourly_D' + self.district + '_lastsave.csv'
+        prefiltered_path = self.outpath + 'degradation/degradation_sensors_hourly_D' + self.district + '_lastsave.csv'
+        if not os.path.isdir(self.outpath + 'degradation/'):
+             os.makedirs(self.outpath + 'degradation/')
+
         if not self.saved and os.path.isfile(prefiltered_path):
             pp = ''
             while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Use saved extracted hourly sensor data, or run it again? (y/n):")
+                pp = input("Extracted hourly sensor data exists, run it again? (y/n):")
                 if len(pp) > 1:
                     pp = pp[0].lower()
-                if pp is "y":
+                if pp is "n":
                     self.saved = True
 
         if self.saved and os.path.isfile(prefiltered_path):
@@ -137,7 +139,7 @@ class GetDegradation:
                 df_hourly = pd.read_csv(self.inpath + gzf, header=None, names=headers)
                 df_hourly = df_hourly[df_hourly['Station'].isin(id_list)]
                 misconfigs.append(df_hourly)
-                print("Done loadings " + gzf)
+                print("Done loading " + gzf)
 
             # Bind together &  Rename Station length to get rid of space
             df_sensors = pd.concat(misconfigs)
@@ -243,7 +245,7 @@ class GetDegradation:
                               }
             output = {**output_meta, **output_results}
 
-            #add results to data frame
+            #add analysis to data frame
             hov_results.append(pd.DataFrame([output]))
 
         df_results = pd.concat(hov_results)
@@ -254,7 +256,7 @@ class GetDegradation:
         return df_results
 
     def save(self):
-        self.results.to_csv(self.outpath + 'results/degradation_results_D' + self.district + "_" + self.date_string + '.csv', index=False)
+        self.results.to_csv(self.outpath + 'degradation/degradation_results_D' + self.district + "_" + self.date_string + '.csv', index=False)
 
 
 

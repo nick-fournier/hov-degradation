@@ -27,7 +27,7 @@ class Detection:
         self.outpath = check_path(outpath)
         self.inpath = check_path(inpath)
 
-        self.hyperparam_path = self.outpath + 'results/analysis_hyperparameters_' + self.dates + '.json'
+        self.hyperparam_path = self.outpath + 'analysis/analysis_hyperparameters_' + self.dates + '.json'
 
         self.hyperparams = None
         self.scores = {}
@@ -42,8 +42,8 @@ class Detection:
         self.district = str(self.df_meta.loc[0, 'District'])
 
         if not os.path.isdir(self.outpath):
-            os.mkdir(self.outpath)
-            os.mkdir(self.outpath + "results")
+            os.makedirs(self.outpath)
+            os.makedirs(self.outpath + "analysis")
 
         with open(self.outpath + "processed/processed_neighbors_D" + self.district + "_" + self.dates + ".json") as f:
             self.neighbors = json.load(f)
@@ -163,7 +163,7 @@ class Detection:
         print("Anomalies detected by the classification model: "
               "{}".format(misconfig_ids))
 
-        # Store results to class objects, save to disk later
+        # Store analysis to class objects, save to disk later
         self.misconfig_ids['classification'] = misconfig_ids
         self.scores['classification'] = scores
 
@@ -228,7 +228,7 @@ class Detection:
         print("Anomalies detected by the unsupervised model: "
               "{}".format(misconfig_ids))
 
-        # Store results to class objects, save to disk later
+        # Store analysis to class objects, save to disk later
         self.misconfig_ids['unsupervised'] = misconfig_ids
         self.scores['unsupervised'] = scores
 
@@ -251,15 +251,14 @@ class Detection:
 
     def save(self):
         # store dataframe
-        self.df_District.to_csv(self.outpath + "results/analysis_detections_table_D" + self.district + "_" + self.dates + ".csv")
-        self.misconfig_meta.to_csv(self.outpath + "results/analysis_misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
+        self.df_District.to_csv(self.outpath + "analysis/analysis_detections_table_D" + self.district + "_" + self.dates + ".csv")
+        self.misconfig_meta.to_csv(self.outpath + "analysis/analysis_misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
 
         # Save scores
-        with open(self.outpath + 'results/analysis_scores_D' + self.district + "_" + self.dates + '.json', 'w') as f:
+        with open(self.outpath + 'analysis/analysis_scores_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.scores, f, sort_keys=True, indent=4)
 
         # Save scores
-        with open(self.outpath + 'results/analysis_misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
+        with open(self.outpath + 'analysis/analysis_misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.misconfig_ids, f, sort_keys=True, indent=4)
 
-        print("Saved")
