@@ -32,6 +32,17 @@ def check_path(path):
     else:
         return path
 
+def check_before_reading(path):
+    with open(path) as f:
+        first_line = f.readline()
+
+    if "," in first_line:
+        return pd.read_csv(path)
+
+    if "\t" in first_line:
+        return pd.read_csv(path, sep="\t")
+
+
 class PreProcess:
     """Preprocess PeMS Station 5-minute data for HOV anomaly detection.
 
@@ -54,8 +65,8 @@ class PreProcess:
 
         # Read meta data
         self.flist = pd.Series(os.listdir(self.inpath))
-        f = self.flist[self.flist.str.contains("meta")][0]
-        self.df_meta = pd.read_csv(self.inpath + f, sep="\t")
+        file = self.flist[self.flist.str.contains("meta")][0]
+        self.df_meta = check_before_reading(self.inpath + file)
 
         self.district = str(self.df_meta.loc[0, 'District'])
 

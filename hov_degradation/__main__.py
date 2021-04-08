@@ -40,66 +40,67 @@ class main:
                  output_path=None,
                  plotting_date=None
                  ):
-
         print("Welcome to erroneous HOV detection and degradation analysis!")
-        degradation = None
-        while not degradation:
-            degradation = input("Do you want to run erroneous detection (1) or degradation analysis (2)?: ")
-            if degradation != '1' and degradation != '2':
-                degradation = None
+        exit = None
+        while exit != 'y':
+            degradation = None
+            while not degradation:
+                degradation = input("Do you want to run erroneous detection (1) or degradation analysis (2)?: ")
+                if degradation != '1' and degradation != '2':
+                    degradation = None
 
-        warnings.filterwarnings('ignore')
+            warnings.filterwarnings('ignore')
 
-        #### PREPROCESSING ####
-        if degradation == '1':
-            while not detection_data_path:
-                detection_data_path = input("Enter the directory of 5-min traffic count input data: ")
-            self.inpath_detection = check_path(detection_data_path)
+            #### PREPROCESSING ####
+            if degradation == '1':
+                while not detection_data_path:
+                    detection_data_path = input("Enter the directory of 5-min traffic count input data: ")
+                self.inpath_detection = check_path(detection_data_path)
 
-            while not output_path:
-                output_path = input("Enter location for processed output directory: ")
-            self.outpath = check_path(output_path)
+                while not output_path:
+                    output_path = input("Enter location for processed output directory: ")
+                self.outpath = check_path(output_path)
 
-            while not plotting_date:
-                plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
-            self.plot_date = plotting_date
+                while not plotting_date:
+                    plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
+                    if not any([plotting_date.replace('-', '_') in x for x in os.listdir(self.inpath_detection)]):
+                        print("not a valid date in data range")
+                        plotting_date = None
+                self.plot_date = plotting_date
 
-            #Check if preprocessed already
-            self.subout = list(filter(None, self.inpath_detection.split('/')))[-1]
-            self.run_preprocessing()
-            self.datestring = [x for x in os.listdir(self.outpath + self.subout + "/processed/") if 'neighbors' in x][0][-29:-5]
+                #Check if preprocessed already
+                self.subout = list(filter(None, self.inpath_detection.split('/')))[-1]
+                self.run_preprocessing()
+                self.datestring = [x for x in os.listdir(self.outpath + self.subout + "/processed/") if 'neighbors' in x][0][-29:-5]
 
-            #### ANALYSIS ####
-            self.run_analysis()
+                #### ANALYSIS ####
+                self.run_analysis()
 
-            #### PLOTS ####
-            self.run_plotting("Plots already exists, regenerate plots? (y/n): ")
+                #### PLOTS ####
+                self.run_plotting("Plots already exists, regenerate plots? (y/n): ")
 
-        else:
-            #### DEGRADATION ####
-            while not degradation_data_path:
-                degradation_data_path = input("Enter the directory of hourly traffic count input data for degradation analysis: ")
-            self.inpath_degradation = check_path(degradation_data_path)
+            else:
+                #### DEGRADATION ####
+                while not degradation_data_path:
+                    degradation_data_path = input("Enter the directory of hourly traffic count input data for degradation analysis: ")
+                self.inpath_degradation = check_path(degradation_data_path)
 
-            while not output_path:
-                output_path = input("Enter location for processed output directory: ")
-            self.outpath = check_path(output_path)
+                while not output_path:
+                    output_path = input("Enter location for processed output directory: ")
+                self.outpath = check_path(output_path)
 
-            # while not plotting_date:
-            #     plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
-            # self.plot_date = plotting_date
+                # while not plotting_date:
+                #     plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
+                # self.plot_date = plotting_date
 
-            self.subout = list(filter(None, self.inpath_degradation.split('/')))[-1]
-            self.run_degradation()
+                self.subout = list(filter(None, self.inpath_degradation.split('/')))[-1]
+                self.run_degradation()
 
-            # #### REPLOTS ####
-            # self.run_plotting("Do you want to update the plots with degradation results? (y/n): ")
+                # #### REPLOTS ####
+                # self.run_plotting("Do you want to update the plots with degradation results? (y/n): ")
 
-        exit = 'n'
-        while exit == 'n':
-            exit = input("Analysis Complete, exit? (y/n): ")
-
-
+            while exit != "y" and exit != "n":
+                exit = input("Analysis Complete, exit? (y/n): ")
 
     def run_preprocessing(self):
         the_path = self.outpath + self.subout + '/processed'

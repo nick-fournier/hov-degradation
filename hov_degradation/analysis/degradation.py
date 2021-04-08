@@ -46,6 +46,18 @@ def reconfigs_to_json(path, df):
     with open(path, 'w') as f:
         json.dump(out, f, sort_keys=True, indent=4)
 
+def check_before_reading(path):
+    with open(path) as f:
+        first_line = f.readline()
+
+    if "," in first_line:
+        return pd.read_csv(path)
+
+    if "\t" in first_line:
+        return pd.read_csv(path, sep="\t")
+
+
+
 class GetDegradation:
 
     def __init__(self, inpath, outpath, bad_sensors, saved=False, joedays=False):
@@ -59,8 +71,9 @@ class GetDegradation:
 
         # Meta data
         self.flist = pd.Series(os.listdir(self.inpath))
-        f = self.flist[self.flist.str.contains("meta")][0]
-        self.meta = pd.read_csv(self.inpath + f)
+        file = self.flist[self.flist.str.contains("meta")][0]
+        self.meta = check_before_reading(self.inpath + file)
+
         self.district = str(self.meta.loc[0, 'District'])
 
         self.bad_ids = bad_sensors
