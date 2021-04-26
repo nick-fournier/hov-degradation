@@ -123,6 +123,28 @@ The detection results will generate individual plots for each sensor comparing t
 The PeMS database uses strip maps to orient the sensor along the freeway. If a strip map image is available for the respective sensors, they may be placed in the `results/strip_maps` folder and will be included in the docx file.
 
 ### 4. Degradation
+Two types of degradation analysis can be performed with this software:
+
+1. *Simple degradation analysis of HOV sensors**: This simply calculates the percent degradation for _all_ HOV sensors in the hourly sensor data provided. This programattically calculates the degradation results that would otherwise be done manually using Microsoft Excel.
+   
+2. *Magnitude of degradation comparison of "corrected" sensors*: If erroneous sensors are specified with their corrected lanes, this calculates the percent degradation for both the erroneous and corrected HOV sensors.
+
+
+#### A. Degradation Analysis for all HOV sensors
+
+Degradation analysis will create two output files:
+
+```
+output/results/
+   ├─ all_degradation_results_D<district #>_<start date>_to_<end date>.csv
+   └─ degradation_sensors_hourly_D<district #>_lastsave.csv
+```
+
+The first file, `all_degradation_results_D<district #>_<start date>_to_<end date>.csv`, is the actual degradation results with percent degradation and other summary calculations (e.g., VHT, VMT, number of days where data are available, etc.). The second file, `degradation_sensors_hourly_D<district #>_lastsave.csv` is a temporary file containing extracted data for the detected misconfigured sensors. This functions as cached data in case you would like to re-run the degradation on the sensors without having to re-process the hourly data, which is large data file.
+
+
+#### b. Magnitude of erroneous HOV sensor degradation
+
 After reviewing the detection results, the lane corrections must be placed into a comma separated value (CSV) file titled: `results\fixed_sensors.csv`. The contents of the file take the format:
 
     ```
@@ -139,12 +161,11 @@ After reviewing the detection results, the lane corrections must be placed into 
     ```
 where `ID` is the detected misconfigured HOV sensor ID, `issue` is a descriptor field, and `real_lane` is the corrected maineline lane. There is no need to provide a specific corrected sensor ID here, the ID will be pulled from the `neighbors` file. After creating this file, run the code again and follow the prompts to run degradation.
 
-Degradation analysis will create two output files:
+Degradation analysis will again create an additional output files:
 
 ```
 output/results/
-   ├─ degradation_results_D<district #>_<start date>_to_<end date>.csv
-   └─ degradation_sensors_hourly_D<district #>_lastsave.csv
+   └─ fixed_degradation_results_D<district #>_<start date>_to_<end date>.csv
 ```
 
-The first file, `degradation_results_D<district #>_<start date>_to_<end date>.csv`, is the actual degradation results. The second file, `degradation_sensors_hourly_D<district #>_lastsave.csv` is a temporary file containing extracted data for the detected misconfigured sensors. This functions as cached data in case you would like to re-run the degradation on the sensors without having the re-process the hourly data, which is large data file.
+The `fixed_degradation_results_D<district #>_<start date>_to_<end date>.csv` file are the degradation results, similar to simple degradation analysis, but with additional rows showing both the erroneous and corrected sensor results.
