@@ -123,7 +123,7 @@ The detection results will generate individual plots for each sensor comparing t
 The PeMS database uses strip maps to orient the sensor along the freeway. If a strip map image is available for the respective sensors, they may be placed in the `results/strip_maps` folder and will be included in the docx file.
 
 ### 4. Degradation
-After reviewing the detection results, the lane corrections must be placed into a comma separated value (CSV) file titled: `results\fixed_sensor_labels.csv`. The contents of the file take the format:
+After reviewing the detection results, the lane corrections must be placed into a comma separated value (CSV) file titled: `results\fixed_sensors.csv`. The contents of the file take the format:
 
     ```
     ID,      issue,          real_lane

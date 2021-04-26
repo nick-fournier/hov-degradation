@@ -12,18 +12,18 @@ import pandas as pd
 import warnings
 
 def get_fixed(path):
-    if not os.path.isfile(path + 'fixed_sensor_labels.json'):
+    if not os.path.isfile(path + 'fixed_sensors.json'):
         # These are the bad IDs and suspected mislabeled lane
         reconfigs = {'ID': [717822, 718270, 718313, 762500, 762549, 768743, 769238, 769745, 774055],
                      'issue': ['Misconfigured'] * 9,
                      'real_lane': ['Lane 1', 'Lane 2', 'Lane 1', 'Lane 2',
                                    'Lane 1', 'Lane 4', 'Lane 1', 'Lane 3', 'Lane 1']}
         df_bad = pd.DataFrame(reconfigs)
-        df_bad.to_csv(path + 'fixed_sensor_labels.csv', index=False)
-        reconfigs_to_json(path + 'fixed_sensor_labels.json', df_bad)
+        df_bad.to_csv(path + 'fixed_sensors.csv', index=False)
+        reconfigs_to_json(path + 'fixed_sensors.json', df_bad)
     else:
-        # df_bad = pd.read_json(outpath + 'fixed_sensor_labels.json')
-        df_bad = pd.read_csv(path + 'fixed_sensor_labels.csv')
+        # df_bad = pd.read_json(outpath + 'fixed_sensors.json')
+        df_bad = pd.read_csv(path + 'fixed_sensors.csv')
 
     return df_bad
 
@@ -45,13 +45,16 @@ class main:
         while exit != 'y':
             degradation = None
             while not degradation:
-                degradation = input("Do you want to run erroneous detection (1) or degradation analysis (2)?: ")
-                if degradation != '1' and degradation != '2':
+                degradation = input("Do you want to run:\n"
+                                    "(1) erroneous HOV sensor detection,\n"
+                                    "(2) HOV degradation analysis?, or"
+                                    "(3) Magnitude of erroneous sensor degradation analysis?: ")
+                if degradation != '1' and degradation != '2' and degradation != '3':
                     degradation = None
 
             warnings.filterwarnings('ignore')
 
-            #### PREPROCESSING ####
+            #### ERRONEOUS DETECTION ####
             if degradation == '1':
                 while not detection_data_path:
                     detection_data_path = input("Enter the directory of 5-min traffic count input data: ")
@@ -68,6 +71,7 @@ class main:
                         plotting_date = None
                 self.plot_date = plotting_date
 
+                #### PREPROCESSING ####
                 #Check if preprocessed already
                 self.subout = list(filter(None, self.inpath_detection.split('/')))[-1]
                 self.run_preprocessing()
@@ -94,7 +98,12 @@ class main:
                 # self.plot_date = plotting_date
 
                 self.subout = list(filter(None, self.inpath_degradation.split('/')))[-1]
-                self.run_degradation()
+
+                if degradation == '3':
+                    df_fixed_sensors = get_fixed(self.outpath)
+                    self.run_degradation(fixed_sensors=df_fixed_sensors)
+                else:
+                    self.run_degradation()
 
                 # #### REPLOTS ####
                 # self.run_plotting("Do you want to update the plots with degradation results? (y/n): ")
@@ -170,24 +179,25 @@ class main:
                         date_range_string=self.datestring
                         ).save()
 
-    def run_degradation(self):
-        df_bad = get_fixed(self.outpath)
+    def run_degradation(self, fixed_sensors=None):
         the_path = self.outpath + self.subout + '/degradation/'
-        if os.path.isdir(the_path) and len(os.listdir(the_path)) > 0:
+        degtype = 'fixed' if isinstance(fixed_sensors, pd.DataFrame) else 'all'
+
+        if os.path.isdir(the_path) and any([degtype in x for x in os.listdir(the_path)]):
             pp = ''
             # Asks if you want to run it again
             while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Degredation analysis already exist, run it again? (y/n): ")
+                pp = input("Degradation analysis already exist, run it again? (y/n): ")
                 if len(pp) > 1:
                     pp = pp[0].lower()
                 if pp is "y":
                     GetDegradation(inpath=self.inpath_degradation,
                                    outpath=self.outpath + self.subout,
-                                   bad_sensors=df_bad,
-                                   saved=False).save()
+                                   bad_sensors=fixed_sensors,
+                                   saved=False)
         # Runs it if it doesn't exist
         else:
             GetDegradation(inpath=self.inpath_degradation,
                            outpath=self.outpath + self.subout,
-                           bad_sensors=df_bad,
-                           saved=False).save()
+                           bad_sensors=fixed_sensors,
+                           saved=False)

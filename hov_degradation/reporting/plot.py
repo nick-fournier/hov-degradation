@@ -59,8 +59,8 @@ class PlotMisconfigs:
         with open(self.outpath + "analysis/analysis_misconfigs_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
-        if os.path.isfile(self.outpath + "analysis/fixed_sensor_labels.json"):
-            with open(self.outpath + "analysis/fixed_sensor_labels.json") as f:
+        if os.path.isfile(self.outpath + "analysis/fixed_sensors.json"):
+            with open(self.outpath + "analysis/fixed_sensors.json") as f:
                 self.reconfig_lanes = json.load(f)
         else:
             self.reconfig_lanes = {}

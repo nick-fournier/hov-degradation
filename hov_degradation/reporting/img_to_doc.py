@@ -34,8 +34,8 @@ class PlotsToDocx:
         with open(self.path + "analysis/analysis_misconfigs_ids_D7_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
-        if os.path.isfile(self.path + "analysis/fixed_sensor_labels.json"):
-            with open(self.path + "analysis/fixed_sensor_labels.json") as f:
+        if os.path.isfile(self.path + "analysis/fixed_sensors.json"):
+            with open(self.path + "analysis/fixed_sensors.json") as f:
                 reconfig_ids = json.load(f)
         else:
             reconfig_ids = {}
