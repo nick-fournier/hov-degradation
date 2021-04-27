@@ -1,11 +1,6 @@
 from hov_degradation.__main__ import main
 import os
 
-
-
-
-
-
 if __name__ == '__main__':
     """
     Compile into single exe using this command in bash:
