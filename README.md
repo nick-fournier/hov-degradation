@@ -12,7 +12,7 @@ To run the code, you can either download and run the standalone the executable f
 ### Executable
 To run the executable:
 1. Download the file 
-2. Create the input and output folders
+2. Create the input and output folders and specify their paths in the `hov_degradation_config.txt` file
 3. Run the executable for:
     1. Erroneous HOV detection on 5-minute traffic data
     2. Degradation analysis on hourly traffic data (requires HOV lane corrections)
@@ -47,8 +47,9 @@ pip install -e .
 The point of entry for the program is `hov_degradation_launcher.py` (this is just a pointer to `hov_degradation/__main__.py`). To run the program, simple run the launcher script, then a command prompt will ask you a series of inputs.   
 
 ## Usage
+To run the program, it requires the file paths for an input and output data folders to direct the code to find. If you are using the `.exe`, you may specify the file paths using the `hov_degradation_config.txt` file. Otherwise the program will default to promting you to type the file paths in manually. 
 
-To run the program, it requires the file paths for an input and output data folders to direct the code to find. I've organized my directory like this, but you can input custom file paths to any desired input and output locations:
+I've organized my directory like this, but you can input custom file paths to any desired input and output locations:
 ```
 HOV degradation main directory
 ├─ hov_degradation code
