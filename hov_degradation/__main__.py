@@ -40,14 +40,15 @@ class main:
                  output_path=None,
                  plotting_date=None
                  ):
+
         print("Welcome to erroneous HOV detection and degradation analysis!")
         exit = None
         while exit != 'y':
             degradation = None
             while not degradation:
                 degradation = input("Do you want to run:\n"
-                                    "(1) erroneous HOV sensor detection,\n"
-                                    "(2) HOV degradation analysis?, or"
+                                    "(1) Erroneous HOV sensor detection,\n"
+                                    "(2) HOV degradation analysis?, or\n"
                                     "(3) Magnitude of erroneous sensor degradation analysis?: ")
                 if degradation != '1' and degradation != '2' and degradation != '3':
                     degradation = None
@@ -65,7 +66,8 @@ class main:
                 self.outpath = check_path(output_path)
 
                 while not plotting_date:
-                    plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
+                    plotting_date = input("Enter date from " + os.listdir(self.inpath_detection) +
+                                          " to use for output plots (yyyy-mm-dd): ")
                     if not any([plotting_date.replace('-', '_') in x for x in os.listdir(self.inpath_detection)]):
                         print("not a valid date in data range")
                         plotting_date = None

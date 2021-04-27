@@ -26,6 +26,19 @@ FREEWAYS = {
     }
 }
 
+# Hardcoded from static files
+headers = ['Unnamed: 0', 'Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Type',
+           'Station Length', 'Samples', 'Observed', 'Flow', 'Occupancy', 'Speed',
+           'Lane 1 Samples', 'Lane 1 Flow', 'Lane 1 Occupancy', 'Lane 1 Speed', 'Lane 1 Observed',
+           'Lane 2 Samples', 'Lane 2 Flow', 'Lane 2 Occupancy', 'Lane 2 Speed', 'Lane 2 Observed',
+           'Lane 3 Samples', 'Lane 3 Flow', 'Lane 3 Occupancy', 'Lane 3 Speed', 'Lane 3 Observed',
+           'Lane 4 Samples', 'Lane 4 Flow', 'Lane 4 Occupancy', 'Lane 4 Speed', 'Lane 4 Observed',
+           'Lane 5 Samples', 'Lane 5 Flow', 'Lane 5 Occupancy', 'Lane 5 Speed', 'Lane 5 Observed',
+           'Lane 6 Samples', 'Lane 6 Flow', 'Lane 6 Occupancy', 'Lane 6 Speed', 'Lane 6 Observed',
+           'Lane 7 Samples', 'Lane 7 Flow', 'Lane 7 Occupancy', 'Lane 7 Speed', 'Lane 7 Observed',
+           'Lane 8 Samples', 'Lane 8 Flow', 'Lane 8 Occupancy', 'Lane 8 Speed', 'Lane 8 Observed']
+
+
 def check_path(path):
     if path[-1] is not "/":
         return path + "/"
@@ -81,10 +94,12 @@ class PreProcess:
     def getdata(self):
         data_flist = self.flist[self.flist.str.contains("station_5min_")]
         # Checks whether it's running or in debug
-        if os.path.isfile('static/5min_headers.csv'):
-            headers = pd.read_csv('static/5min_headers.csv', index_col=0, header=0).columns
-        else:
-            headers = pd.read_csv('hov_degradation/static/5min_headers.csv', index_col=0, header=0).columns
+        # if os.path.isfile('5min_headers.csv'):
+        #     headers = pd.read_csv('5min_headers.csv', index_col=0, header=0).columns
+        # elif os.path.isfile('static/5min_headers.csv'):
+        #     headers = pd.read_csv('static/5min_headers.csv', index_col=0, header=0).columns
+        # else:
+        #     headers = pd.read_csv('hov_degradation/static/5min_headers.csv', index_col=0, header=0).columns
 
         df_data = pd.DataFrame()
         for f in data_flist:

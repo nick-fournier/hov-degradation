@@ -4,6 +4,19 @@ import json
 
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
+
+headers = ['Unnamed: 0', 'Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Type', 'Station Length',
+           'Samples', 'Observed', 'Flow', 'Occupancy', 'Speed',
+           'Delay_Vt=35', 'Delay_Vt=40', 'Delay_Vt=45', 'Delay_Vt=50', 'Delay_Vt=55', 'Delay_Vt=60',
+           'Lane 1 Flow', 'Lane 1 Occupancy', 'Lane 1 Speed',
+           'Lane 2 Flow', 'Lane 2 Occupancy', 'Lane 2 Speed',
+           'Lane 3 Flow', 'Lane 3 Occupancy', 'Lane 3 Speed',
+           'Lane 4 Flow', 'Lane 4 Occupancy', 'Lane 4 Speed',
+           'Lane 5 Flow', 'Lane 5 Occupancy', 'Lane 5 Speed',
+           'Lane 6 Flow', 'Lane 6 Occupancy', 'Lane 6 Speed',
+           'Lane 7 Flow', 'Lane 7 Occupancy', 'Lane 7 Speed',
+           'Lane 8 Flow', 'Lane 8 Occupancy', 'Lane 8 Speed']
+
 def check_path(path):
     if path[-1] is not "/":
         return path + "/"
@@ -136,10 +149,12 @@ class GetDegradation:
         else:
             # Headers, file list, and ID list
             # Checks whether it's running or in debug
-            if os.path.isfile('static/5min_headers.csv'):
-                headers = pd.read_csv('static/hourly_headers.csv', index_col=0, header=0).columns.tolist()
-            else:
-                headers = pd.read_csv('hov_degradation/static/hourly_headers.csv', index_col=0, header=0).columns.tolist()
+            # if os.path.isfile('hourly_headers.csv'):
+            #     headers = pd.read_csv('hourly_headers.csv', index_col=0, header=0).columns.tolist()
+            # elif os.path.isfile('static/hourly_headers.csv'):
+            #     headers = pd.read_csv('static/hourly_headers.csv', index_col=0, header=0).columns.tolist()
+            # else:
+            #     headers = pd.read_csv('hov_degradation/static/hourly_headers.csv', index_col=0, header=0).columns.tolist()
 
             data = []
             gzlist = pd.Series(os.listdir(self.inpath))
