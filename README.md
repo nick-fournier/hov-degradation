@@ -63,15 +63,17 @@ HOV degradation main directory
     │   └─ hourly_counts
     └─ output
 ```
-Two main types of data are needed:
+Three main types of data are needed:
 * **5-minute daily traffic counts**: used for detection of misconfigured sensors.
 * **Hourly traffic counts**: used for the degradation analysis *of* the detected sensors.
+* **Meta deta**: A meta-data file for sensors is required to be placed in each folder for both 5-min and hourly data sources. 
 
-The file format is the compressed `.txt.gz` filetype downloaded from PeMS, no extraction necessary. 
+Note that the meta-data file could be the same for both 5-minute and hourly counts, but the code requires a separate meta-data file for each data type. This is for consistency in case the study period varies so that the meta-data file is different. 
+
+The file format for meta data is `.txt` and the file format for the count data is a compressed `.txt.gz` filetype downloaded from PeMS, no extraction necessary. 
 
 For 5-minute data I downloaded 7 consecutive days of 5-minute traffic counts. I found more than 7 days of data and the combined dataset becomes a bit too large. It's technically possible to use more than 7 days, but the benefit is likely negligible.
 
-**Important!** For both of data sources, a meta-data file for sensors is also required to be placed in each folder. Note that the meta-data file could be the same for both 5-minute and hourly counts, but the code requires a separate meta-data file for each data type. This is for consistency in case the study period varies so that the meta-data file is different. 
 
 The code is organized into four overall steps:
 1. **Preprocessing**
