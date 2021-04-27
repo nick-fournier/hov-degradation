@@ -71,7 +71,7 @@ The file format is the compressed `.txt.gz` filetype downloaded from PeMS, no ex
 
 For 5-minute data I downloaded 7 consecutive days of 5-minute traffic counts. I found more than 7 days of data and the combined dataset becomes a bit too large. It's technically possible to use more than 7 days, but the benefit is likely negligible.
 
-For both of data sources, a meta-data file for sensors is also required to be placed in each folder. Note that the meta-data file could be the same for both 5-minute and hourly counts, but the code requires a separate meta-data file for each data type. This is for consistency in case the study period varies so that the meta-data file is different. 
+**Important!** For both of data sources, a meta-data file for sensors is also required to be placed in each folder. Note that the meta-data file could be the same for both 5-minute and hourly counts, but the code requires a separate meta-data file for each data type. This is for consistency in case the study period varies so that the meta-data file is different. 
 
 The code is organized into four overall steps:
 1. **Preprocessing**
