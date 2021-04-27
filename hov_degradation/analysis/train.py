@@ -54,6 +54,7 @@ class Detection:
 
         if not os.path.isdir(self.outpath):
             os.makedirs(self.outpath)
+        if not os.path.isdir(self.outpath + "analysis"):
             os.makedirs(self.outpath + "analysis")
 
         with open(self.outpath + "processed/processed_neighbors_D" + self.district + "_" + self.dates + ".json") as f:

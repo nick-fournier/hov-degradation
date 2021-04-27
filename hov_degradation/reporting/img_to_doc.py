@@ -85,13 +85,15 @@ class PlotsToDocx:
         strip_path = ''
         i = 0
         dir = self.path
+        delim = "\\" if "\\" in self.path else "/"
         while dir:
             if os.path.isdir(dir) and "strip_maps" in os.listdir(dir):
                 strip_path = dir + "/strip_maps/"
                 break
             print(dir)
             i += 1
-            dir = "/".join(self.path.split('/')[:-i])
+
+            dir = "/".join(self.path.split(delim)[:-i])
 
         date_string = pd.to_datetime(self.plot_date).day_name() + ' ' + self.plot_date
 

@@ -75,7 +75,8 @@ class main:
 
                 #### PREPROCESSING ####
                 #Check if preprocessed already
-                self.subout = list(filter(None, self.inpath_detection.split('/')))[-1]
+                delim = "\\" if "\\" in self.inpath_detection else "/"
+                self.subout = list(filter(None, self.inpath_detection.split(delim)))[-1]
                 self.run_preprocessing()
                 self.datestring = [x for x in os.listdir(self.outpath + self.subout + "/processed/") if 'neighbors' in x][0][-29:-5]
 
@@ -98,8 +99,8 @@ class main:
                 # while not plotting_date:
                 #     plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
                 # self.plot_date = plotting_date
-
-                self.subout = list(filter(None, self.inpath_degradation.split('/')))[-1]
+                delim = "\\" if "\\" in self.inpath_detection else "/"
+                self.subout = list(filter(None, self.inpath_degradation.split(delim)))[-1]
 
                 if degradation == '3':
                     df_fixed_sensors = get_fixed(self.outpath)
@@ -120,7 +121,7 @@ class main:
             # Asks if you want to run it again
             while any([pp is 'n', pp is 'y']) is False:
                 pp = input("Processed data already exists for " + self.subout +
-                           ". Do you want to run pre-processing (y/n)?: ")
+                           ". Do you want to run pre-processing again (y/n)?: ")
                 if len(pp) > 1:
                     pp = pp[0].lower()
                 if pp is "y":

@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
     # Running entry script
     main(detection_data_path=config['detection_data_path'],
-         degradation_data_path=config['detection_data_path'],
+         degradation_data_path=config['degradation_data_path'],
          output_path=config['output_path'],
          plotting_date=config['plotting_date']
          )

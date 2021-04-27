@@ -17,6 +17,7 @@ headers = ['Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Typ
            'Lane 7 Flow', 'Lane 7 Occupancy', 'Lane 7 Speed',
            'Lane 8 Flow', 'Lane 8 Occupancy', 'Lane 8 Speed']
 
+
 def check_path(path):
     if path[-1] is not "/":
         return path + "/"
