@@ -66,7 +66,7 @@ HOV degradation main directory
 Three main types of data are needed:
 * **5-minute daily traffic counts**: used for detection of misconfigured sensors.
 * **Hourly traffic counts**: used for the degradation analysis *of* the detected sensors.
-* **Meta deta**: A meta-data file for sensors is required to be placed in each folder for both 5-min and hourly data sources. 
+* **Meta data**: A meta-data file for sensors is required to be placed in each folder for both 5-min and hourly data sources. 
 
 Note that the meta-data file could be the same for both 5-minute and hourly counts, but the code requires a separate meta-data file for each data type. This is for consistency in case the study period varies so that the meta-data file is different. 
 
