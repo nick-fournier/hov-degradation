@@ -5,7 +5,7 @@ import json
 from pandas.tseries.holiday import USFederalHolidayCalendar
 
 
-headers = ['Unnamed: 0', 'Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Type', 'Station Length',
+headers = ['Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Type', 'Station Length',
            'Samples', 'Observed', 'Flow', 'Occupancy', 'Speed',
            'Delay_Vt=35', 'Delay_Vt=40', 'Delay_Vt=45', 'Delay_Vt=50', 'Delay_Vt=55', 'Delay_Vt=60',
            'Lane 1 Flow', 'Lane 1 Occupancy', 'Lane 1 Speed',

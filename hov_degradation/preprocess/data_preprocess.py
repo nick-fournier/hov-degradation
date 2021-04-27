@@ -27,7 +27,7 @@ FREEWAYS = {
 }
 
 # Hardcoded from static files
-headers = ['Unnamed: 0', 'Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Type',
+headers = ['Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Type',
            'Station Length', 'Samples', 'Observed', 'Flow', 'Occupancy', 'Speed',
            'Lane 1 Samples', 'Lane 1 Flow', 'Lane 1 Occupancy', 'Lane 1 Speed', 'Lane 1 Observed',
            'Lane 2 Samples', 'Lane 2 Flow', 'Lane 2 Occupancy', 'Lane 2 Speed', 'Lane 2 Observed',
