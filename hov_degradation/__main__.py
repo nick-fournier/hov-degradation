@@ -10,6 +10,7 @@ import numpy.random.entropy
 import os
 import pandas as pd
 import warnings
+import sys
 
 def get_fixed(path):
     if not os.path.isfile(path + 'fixed_sensors.json'):
@@ -48,10 +49,14 @@ class main:
             while not degradation:
                 degradation = input("Do you want to run:\n"
                                     "(1) Erroneous HOV sensor detection,\n"
-                                    "(2) HOV degradation analysis?, or\n"
-                                    "(3) Magnitude of erroneous sensor degradation analysis?: ")
-                if degradation != '1' and degradation != '2' and degradation != '3':
+                                    "(2) HOV degradation analysis?,\n"
+                                    "(3) Magnitude of erroneous sensor degradation analysis?, or\n"
+                                    "(E) Exit?: ")
+                if degradation != '1' and degradation != '2' and degradation != '3' and degradation != 'E':
                     degradation = None
+
+            if degradation == 'E':
+                sys.exit()
 
             warnings.filterwarnings('ignore')
 

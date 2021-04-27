@@ -1,5 +1,0 @@
-detection_data_path     C:\gitclones\connected-corridors\hov-degradation\experiments\input\D7\5min\2019_09_16-20
-degradation_data_path   C:\gitclones\connected-corridors\hov-degradation\experiments\input\D7\hourly\2019
-output_path             C:\gitclones\connected-corridors\hov-degradation\experiments\output
-plotting_date           2019-09-18
-
