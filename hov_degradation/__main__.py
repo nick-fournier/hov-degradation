@@ -63,11 +63,11 @@ class main:
                                     "(1) Erroneous HOV sensor detection,\n"
                                     "(2) HOV degradation analysis?,\n"
                                     "(3) Magnitude of erroneous sensor degradation analysis?, or\n"
-                                    "(E) Exit?: ")
+                                    "(E) Exit?: ").upper()
                 if degradation != '1' and degradation != '2' and degradation != '3' and degradation != 'E':
                     degradation = None
 
-            if degradation.upper() == 'E':
+            if degradation == 'E':
                 sys.exit()
 
             warnings.filterwarnings('ignore')

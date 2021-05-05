@@ -11,6 +11,7 @@ import pandas as pd
 import os
 import json
 import pickle
+import sys
 
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
@@ -37,6 +38,16 @@ def check_before_reading(path):
     if "\t" in first_line:
         return pd.read_csv(path, sep="\t")
 
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 class Detection:
 
     def __init__(self, inpath, outpath, date_range_string, retrain=False):
@@ -49,6 +60,11 @@ class Detection:
         self.scores = {}
         self.misconfig_ids = {}
         self.misconfig_meta = None
+
+
+        #Static dir
+        self.static = resource_path('static/')
+        # self.static = './hov_degradation/static/'
 
         # Read meta data
         self.flist = pd.Series(os.listdir(self.inpath))
@@ -189,8 +205,8 @@ class Detection:
                 hyperparam_path = self.outpath + 'trained/hyperparameters_210_' + self.dates + '.json'
                 pkl_filename = self.outpath + 'trained/trained_classification_I210_' + self.dates + '.pkl'
             else:
-                hyperparam_path = './hov_degradation/static/hyperparameters_I210_2020-12-06_to_2020-12-12.json'
-                pkl_filename = './hov_degradation/static/trained_classification_I210_2020-12-06_to_2020-12-12.pkl'
+                hyperparam_path = self.static + 'hyperparameters_I210_2020-12-06_to_2020-12-12.json'
+                pkl_filename = self.static + 'trained_classification_I210_2020-12-06_to_2020-12-12.pkl'
 
             # RELOAD EXISTING HYPERPARAMTERS & MODEL
             with open(hyperparam_path) as f:
@@ -273,8 +289,8 @@ class Detection:
                 pkl_filename = self.outpath + 'trained/trained_classification_I210_' + self.dates + '.pkl'
                 scores_filename = self.outpath + 'trained/scores_I210_' + self.dates + '.json'
             else:
-                pkl_filename = './hov_degradation/static/trained_unsupervised_I210_2020-12-06_to_2020-12-12.pkl'
-                scores_filename = './hov_degradation/static/scores_I210_2020-12-06_to_2020-12-12.json'
+                pkl_filename = self.static + 'trained_unsupervised_I210_2020-12-06_to_2020-12-12.pkl'
+                scores_filename = self.static + 'scores_I210_2020-12-06_to_2020-12-12.json'
 
             # RELOAD EXISTING MODEL
             with open(pkl_filename, 'rb') as file:

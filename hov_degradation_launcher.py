@@ -29,23 +29,26 @@ if __name__ == '__main__':
         config = {}
         with open(config_path) as fh:
             for line in fh:
-                line_list = line.strip().split()
+                line_list = line.strip().split(',')
                 if len(line_list) > 0:
                     var, value = line_list
                     config[var] = value.strip()
 
         print("=========================================================")
         print("Current directories:")
-        for p in ['detection_data_path', 'degradation_data_path', 'output_path']:
+        for p in ['detection_data_path', 'degradation_data_path']:
             print(p + ": " + config[p])
-            if not (os.path.isdir(config[p]) and len(os.listdir(config[p]))):
+            if not (os.path.isdir(config[p]) and len(os.listdir(config[p])) > 0):
                 config[p] = None
-                input('Cannot find data file or folder for "' + p + '" Press any key to continue')
+                input('Cannot find data files for "' + p + '" Press any key to continue')
 
-            if not any([config['plotting_date'].replace('-', '_') in x for x in os.listdir(config['detection_data_path'])]):
-                config['plotting_date'] = None
-                input('Plot date ' + config['plotting_date'] + ' not found in ' +
-                      config['detection_data_path'] + ' Press any key to continue')
+        if not os.path.isdir(config['output_path']):
+            os.makedirs(config['output_path'])
+
+        if not any([config['plotting_date'].replace('-', '_') in x for x in os.listdir(config['detection_data_path'])]):
+            config['plotting_date'] = None
+            input('Plot date ' + config['plotting_date'] + ' not found in ' +
+                  config['detection_data_path'] + ' Press any key to continue')
 
         if not all(config.values()):
             sys.exit()
