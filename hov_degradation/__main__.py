@@ -49,6 +49,10 @@ class main:
                  output_path=None,
                  plotting_date=None
                  ):
+        self.plot_date = plotting_date
+        self.inpath_degradation = check_path(degradation_data_path)
+        self.inpath_detection = detection_data_path
+        self.outpath = check_path(output_path)
 
         print("Welcome to erroneous HOV detection and degradation analysis!")
         exit = None
@@ -63,27 +67,13 @@ class main:
                 if degradation != '1' and degradation != '2' and degradation != '3' and degradation != 'E':
                     degradation = None
 
-            if degradation == 'E':
+            if degradation.upper() == 'E':
                 sys.exit()
 
             warnings.filterwarnings('ignore')
 
             #### ERRONEOUS DETECTION ####
             if degradation == '1':
-                while not detection_data_path:
-                    detection_data_path = input("Enter the directory of 5-min traffic count input data: ")
-                self.inpath_detection = check_path(detection_data_path)
-
-                while not output_path:
-                    output_path = input("Enter location for processed output directory: ")
-                self.outpath = check_path(output_path)
-
-                while not plotting_date:
-                    plotting_date = input("Enter date from " + os.listdir(self.inpath_detection) +
-                                          " to use for output plots (yyyy-mm-dd): ")
-                    if not any([plotting_date.replace('-', '_') in x for x in os.listdir(self.inpath_detection)]):
-                        print("not a valid date in data range")
-                        plotting_date = None
                 self.plot_date = plotting_date
 
                 #### PREPROCESSING ####
@@ -101,18 +91,7 @@ class main:
 
             else:
                 #### DEGRADATION ####
-                while not degradation_data_path:
-                    degradation_data_path = input("Enter the directory of hourly traffic count input data for degradation analysis: ")
-                self.inpath_degradation = check_path(degradation_data_path)
-
-                while not output_path:
-                    output_path = input("Enter location for processed output directory: ")
-                self.outpath = check_path(output_path)
-
-                # while not plotting_date:
-                #     plotting_date = input("Enter date to use for output plots (yyyy-mm-dd): ")
-                # self.plot_date = plotting_date
-                delim = "\\" if "\\" in self.inpath_detection else "/"
+                delim = "\\" if "\\" in self.inpath_degradation else "/"
                 self.subout = list(filter(None, self.inpath_degradation.split(delim)))[-1]
 
                 if degradation == '3':
@@ -178,7 +157,8 @@ class main:
                                    outpath=self.outpath + self.subout,
                                    plot_date=self.plot_date,
                                    date_range_string=self.datestring)
-                    PlotsToDocx(outpath=self.outpath + self.subout,
+                    PlotsToDocx(inpath=self.inpath_detection,
+                                outpath=self.outpath + self.subout,
                                 plot_date=self.plot_date,
                                 date_range_string=self.datestring
                                 ).save()
@@ -190,7 +170,8 @@ class main:
                            plot_date=self.plot_date,
                            date_range_string=self.datestring)
 
-            PlotsToDocx(outpath=self.outpath + self.subout,
+            PlotsToDocx(inpath=self.inpath_detection,
+                        outpath=self.outpath + self.subout,
                         plot_date=self.plot_date,
                         date_range_string=self.datestring
                         ).save()

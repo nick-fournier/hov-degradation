@@ -24,11 +24,22 @@ headers = ['Timestamp', 'Station', 'District', 'Freeway', 'Direction', 'Lane Typ
            'Lane 7 Samples', 'Lane 7 Flow', 'Lane 7 Occupancy', 'Lane 7 Speed', 'Lane 7 Observed',
            'Lane 8 Samples', 'Lane 8 Flow', 'Lane 8 Occupancy', 'Lane 8 Speed', 'Lane 8 Observed']
 
+
+def check_before_reading(path):
+    with open(path) as f:
+        first_line = f.readline()
+
+    if "," in first_line:
+        return pd.read_csv(path)
+
+    if "\t" in first_line:
+        return pd.read_csv(path, sep="\t")
+
 class PlotMisconfigs:
 
     def __init__(self, inpath, outpath, plot_date, date_range_string):
         # Amend string
-        if outpath[-1] is not "/":
+        if inpath[-1] is not "/":
             self.inpath = inpath + "/"
         else:
             self.inpath = inpath
@@ -47,6 +58,14 @@ class PlotMisconfigs:
         self.dict_mis_ids = None
         self.df_mis_ids = None
         self.reconfig_lanes = None
+
+        # Read meta data
+        self.flist = pd.Series(os.listdir(self.inpath))
+        file = self.flist[self.flist.str.contains("meta")][0]
+        self.df_meta = check_before_reading(self.inpath + file)
+        self.district = str(self.df_meta.loc[0, 'District'])
+
+        # Run
         self.get_data()
         self.save()
 
@@ -71,10 +90,10 @@ class PlotMisconfigs:
         self.meta = pd.read_csv(self.inpath + f, sep="\t")
 
         # Load JSON files
-        with open(self.outpath + "processed/processed_neighbors_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "processed/D7_neighbors_" + self.data_dates + ".json") as f:
             self.neighbors = json.load(f)
 
-        with open(self.outpath + "analysis/analysis_misconfigs_ids_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "analysis/misconfigs_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
         if os.path.isfile(self.outpath + "analysis/fixed_sensors.json"):

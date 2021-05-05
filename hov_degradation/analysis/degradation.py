@@ -104,7 +104,7 @@ class GetDegradation:
 
         if isinstance(bad_sensors, pd.DataFrame):
             self.neighbors = self.get_neighbors()
-            self.get_fixed_magnitude()
+            self.get_fixed_degradation()
         else:
             self.get_all_degradation()
 

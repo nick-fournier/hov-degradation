@@ -17,14 +17,37 @@ from docx.shared import Pt
 from docx.shared import Inches
 
 
+def check_before_reading(path):
+    with open(path) as f:
+        first_line = f.readline()
+
+    if "," in first_line:
+        return pd.read_csv(path)
+
+    if "\t" in first_line:
+        return pd.read_csv(path, sep="\t")
+
 class PlotsToDocx:
-    def __init__(self, outpath, plot_date, date_range_string):
+    def __init__(self, inpath, outpath, plot_date, date_range_string):
+        # Amend string
+        if inpath[-1] is not "/":
+            self.inpath = inpath + "/"
+        else:
+            self.inpath = inpath
+
         # Amend string
         if outpath[-1] is not "/":
-            self.path = outpath + "/"
+            self.outpath = outpath + "/"
         else:
-            self.path = outpath
+            self.outpath = outpath
 
+        # Read meta data
+        self.flist = pd.Series(os.listdir(self.inpath))
+        file = self.flist[self.flist.str.contains("meta")][0]
+        self.df_meta = check_before_reading(self.inpath + file)
+        self.district = str(self.df_meta.loc[0, 'District'])
+
+        # Run
         self.dates = date_range_string
         self.plot_date = plot_date
         self.agg_results = self.aggregate_results()
@@ -36,14 +59,14 @@ class PlotsToDocx:
 
     def get_labels(self):
        # Load JSON files
-        with open(self.path + "processed/processed_neighbors_D7_" + self.dates + ".json") as f:
+        with open(self.outpath + "processed/D" + self.district + "_neighbors_" + self.dates + ".json") as f:
             neighbors = json.load(f)
 
-        with open(self.path + "analysis/analysis_misconfigs_ids_D7_" + self.dates + ".json") as f:
+        with open(self.outpath + "analysis/misconfigs_ids_D" + self.district + "_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
-        if os.path.isfile(self.path + "analysis/fixed_sensors.json"):
-            with open(self.path + "analysis/fixed_sensors.json") as f:
+        if os.path.isfile(self.outpath + "analysis/fixed_sensors.json"):
+            with open(self.outpath + "analysis/fixed_sensors.json") as f:
                 reconfig_ids = json.load(f)
         else:
             reconfig_ids = {}
@@ -67,10 +90,10 @@ class PlotsToDocx:
 
     def aggregate_results(self):
         # Meta data
-        flist = pd.Series(os.listdir(self.path + 'analysis'))
+        flist = pd.Series(os.listdir(self.outpath + 'analysis'))
         f = list(flist[flist.str.contains("meta")])[0]
-        df_meta = pd.read_csv(self.path + 'analysis/' + f)
-        df_pred = pd.read_csv(self.path + 'analysis/analysis_detections_table_D7_' + self.dates + '.csv')
+        df_meta = pd.read_csv(self.outpath + 'analysis/' + f)
+        df_pred = pd.read_csv(self.outpath + 'analysis/predictions_D' + self.district + '_' + self.dates + '.csv')
 
         total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
         analyzed = df_pred.iloc[:, 0].count()
@@ -92,16 +115,14 @@ class PlotsToDocx:
         plot_path = 'plots_misconfigs_'
         strip_path = ''
         i = 0
-        dir = self.path
-        delim = "\\" if "\\" in self.path else "/"
+        dir = self.outpath
+        delim = "\\" if "\\" in self.outpath else "/"
         while dir:
             if os.path.isdir(dir) and "strip_maps" in os.listdir(dir):
                 strip_path = dir + "/strip_maps/"
                 break
-            print(dir)
             i += 1
-
-            dir = "/".join(self.path.split(delim)[:-i])
+            dir = "/".join(self.outpath.split(delim)[:-i])
 
         date_string = pd.to_datetime(self.plot_date).day_name() + ' ' + self.plot_date
 
@@ -117,8 +138,8 @@ class PlotsToDocx:
             run.add_break()
         run.add_break(WD_BREAK.PAGE)
 
-        for id_dir in os.listdir(self.path + plot_path + self.dates):
-            figpath = self.path + plot_path + self.dates + '/' + id_dir + '/'
+        for id_dir in os.listdir(self.outpath + plot_path + self.dates):
+            figpath = self.outpath + plot_path + self.dates + '/' + id_dir + '/'
 
             doc.add_heading('Sensor: ' + id_dir, level=2)
             para = doc.add_paragraph()
@@ -148,7 +169,7 @@ class PlotsToDocx:
         return doc
 
     def save(self):
-        self.doc.save(self.path + '/analysis/HOV plots_' + str(date.today()) + '.docx')
+        self.doc.save(self.outpath + '/analysis/HOV plots_' + str(date.today()) + '.docx')
 
 
 

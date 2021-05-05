@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import os
 import json
+import pickle
 
 from sklearn import svm
 from sklearn.neighbors import KNeighborsClassifier, LocalOutlierFactor
@@ -26,7 +27,6 @@ def check_path(path):
     else:
         return path
 
-
 def check_before_reading(path):
     with open(path) as f:
         first_line = f.readline()
@@ -39,14 +39,12 @@ def check_before_reading(path):
 
 class Detection:
 
-    def __init__(self, inpath, outpath, date_range_string):
+    def __init__(self, inpath, outpath, date_range_string, retrain=False):
         # load data
         self.dates = date_range_string
         self.outpath = check_path(outpath)
         self.inpath = check_path(inpath)
-
-        self.hyperparam_path = self.outpath + 'analysis/analysis_hyperparameters_' + self.dates + '.json'
-
+        self.retrain = retrain
         self.hyperparams = None
         self.scores = {}
         self.misconfig_ids = {}
@@ -64,13 +62,12 @@ class Detection:
         if not os.path.isdir(self.outpath + "analysis"):
             os.makedirs(self.outpath + "analysis")
 
-        with open(self.outpath + "processed/processed_neighbors_D" + self.district + "_" + self.dates + ".json") as f:
+        with open(self.outpath + "processed/D" + self.district + "_neighbors_" + self.dates + ".json") as f:
             self.neighbors = json.load(f)
-        self.train_df_i210 = pd.read_csv(self.outpath + "processed/processed_i210_train_" + self.dates + ".csv", index_col=0).dropna()
-        self.test_df_i210 = pd.read_csv(self.outpath + "processed/processed_i210_test_" + self.dates + ".csv", index_col=0).dropna()
+        self.train_df_i210 = pd.read_csv(self.outpath + "processed/i210_train_data_" + self.dates + ".csv", index_col=0).dropna()
+        self.test_df_i210 = pd.read_csv(self.outpath + "processed/i210_test_data_" + self.dates + ".csv", index_col=0).dropna()
         self.df_i210 = pd.concat([self.train_df_i210, self.test_df_i210], axis=0)
-        self.df_District = pd.read_csv(self.outpath + "processed/processed_D" + self.district + "_" + self.dates + ".csv", index_col=0).dropna()
-
+        self.df_District = pd.read_csv(self.outpath + "processed/D" + self.district + "_data_" + self.dates + ".csv", index_col=0).dropna()
 
         # Running the machine learning
         self.train_classification()
@@ -144,34 +141,63 @@ class Detection:
             # 'SVM': SVC
         }
 
-        # hyperparams
-        if os.path.isfile(self.hyperparam_path):
-            with open(self.hyperparam_path) as f:
-                self.hyperparams = json.load(f)
-        else:
+        # IF NEW RETRAINING MODEL
+        if self.retrain:
+            hyperparam_path = self.outpath + 'trained/hyperparameters_I210_' + self.dates + '.json'
+            pkl_filename = self.outpath + 'trained/trained_classification_I210_' + self.dates + '.pkl'
+
+            if not os.path.isdir(self.outpath + "trained"):
+                os.makedirs(self.outpath + "trained")
+
+            # hyperparams for classification
             self.hyperparams = self.hyperparam_search(x=x_train_i210,    # FIXME yf validation data
                                                       y=y_train_i210,    # FIXME yf validation data
                                                       classifiers_map=classifiers_map)
             # dump hyperparams
-            with open(self.hyperparam_path, 'w') as f:
+            with open(hyperparam_path, 'w') as f:
                 json.dump(self.hyperparams, f, sort_keys=True, indent=4)
 
-        # train
-        scores = {name: None for name in classifiers_map.keys()}
-        np.random.seed(12345)
-        for name, func in classifiers_map.items():
-            # pass parameters of the classifiers based on the hyperparams
-            clf = func(**self.hyperparams[name])
-            clf.fit(x_train_i210, y_train_i210)
-            train_score = clf.score(x_train_i210, y_train_i210)
-            test_score = clf.score(x_test_i210, y_test_i210)
-            scores[name] = {'train': train_score, 'test': test_score}
+            # train
+            scores = {name: None for name in classifiers_map.keys()}
+            np.random.seed(12345)
+            for name, func in classifiers_map.items():
+                # pass parameters of the classifiers based on the hyperparams
+                clf = func(**self.hyperparams[name])
+                clf.fit(x_train_i210, y_train_i210)
+                train_score = clf.score(x_train_i210, y_train_i210)
+                test_score = clf.score(x_test_i210, y_test_i210)
+                scores[name] = {'train': train_score, 'test': test_score}
 
-        # select the best model
-        # best_model = max(scores, key=operator.itemgetter(1))
-        best_model = 'Random Forest'  # TODO
-        clf = classifiers_map[best_model](**self.hyperparams[best_model])
-        clf.fit(x_train_i210, y_train_i210)
+            # select the best model
+            # best_model = max(scores, key=operator.itemgetter(1))
+            best_model = 'Random Forest'  # TODO
+            clf = classifiers_map[best_model](**self.hyperparams[best_model])
+            clf.fit(x_train_i210, y_train_i210)
+
+            # SERIALIZING MODEL
+            with open(pkl_filename, 'wb') as file:
+                pickle.dump(clf, file)
+
+            # Save scores
+            self.scores['classification'] = scores
+            with open(self.outpath + 'trained/scores_I210_' + self.dates + '.json', 'w') as f:
+                json.dump(self.scores, f, sort_keys=True, indent=4)
+
+        else:
+            # IF LOCALLY TRAINED MODEL
+            if os.path.isdir(self.outpath + 'trained') and len(os.listdir(self.outpath + 'trained')) > 0:
+                hyperparam_path = self.outpath + 'trained/hyperparameters_210_' + self.dates + '.json'
+                pkl_filename = self.outpath + 'trained/trained_classification_I210_' + self.dates + '.pkl'
+            else:
+                hyperparam_path = './hov_degradation/static/hyperparameters_I210_2020-12-06_to_2020-12-12.json'
+                pkl_filename = './hov_degradation/static/trained_classification_I210_2020-12-06_to_2020-12-12.pkl'
+
+            # RELOAD EXISTING HYPERPARAMTERS & MODEL
+            with open(hyperparam_path) as f:
+                self.hyperparams = json.load(f)
+            with open(pkl_filename, 'rb') as file:
+                clf = pickle.load(file)
+
 
         # predict the ids onto the processed data
         y_pred_District = clf.predict(x_District)
@@ -182,9 +208,8 @@ class Detection:
         print("Anomalies detected by the classification model: "
               "{}".format(misconfig_ids))
 
-        # Store analysis to class objects, save to disk later
+        # Store analysis to class objects
         self.misconfig_ids['classification'] = misconfig_ids
-        self.scores['classification'] = scores
 
     def train_unsupervised(self):
         # processed data
@@ -208,32 +233,63 @@ class Detection:
                 n_neighbors=35, contamination=outliers_fraction)
         }
 
-        # train
-        scores = {name: None for name in unsupervised_map.keys()}
-        np.random.seed(12345)
-        for name, func in unsupervised_map.items():
-            func.fit(x_i210)
-            if name == "Local Outlier Factor":
-                y_pred_i210 = func.fit_predict(x_i210)
+        # IF NEW RETRAINING MODEL
+        if self.retrain:
+            # train
+            scores = {name: None for name in unsupervised_map.keys()}
+            np.random.seed(12345)
+            for name, func in unsupervised_map.items():
+                func.fit(x_i210)
+                if name == "Local Outlier Factor":
+                    y_pred_i210 = func.fit_predict(x_i210)
+                else:
+                    y_pred_i210 = func.fit(x_i210).predict(x_i210)
+
+                # change output labels for consistency with the classification outputs
+                y_pred_i210[y_pred_i210 == 1] = 0
+                y_pred_i210[y_pred_i210 == -1] = 1
+
+                # compute scores - only available for I-210 since we have ground truth
+                scores[name] = accuracy_score(y_pred_i210, y_i210)
+
+            # select the best model
+            best_model = max(scores, key=scores.get)
+            unsup = unsupervised_map[best_model]
+            # func.fit(x_District)
+
+            # SERIALIZING MODEL
+            pkl_filename = self.outpath + 'trained/trained_unsupervised_I210_' + self.dates + '.pkl'
+            with open(pkl_filename, 'wb') as file:
+                pickle.dump(unsup, file)
+
+            # Save scores
+            self.scores['unsupervised'] = scores
+            with open(self.outpath + 'trained/scores_I210_' + self.dates + '.json', 'w') as f:
+                json.dump(self.scores, f, sort_keys=True, indent=4)
+
+        else:
+            # IF LOCALLY TRAINED MODEL
+            if os.path.isdir(self.outpath + 'trained') and len(os.listdir(self.outpath + 'trained')) > 0:
+                pkl_filename = self.outpath + 'trained/trained_classification_I210_' + self.dates + '.pkl'
+                scores_filename = self.outpath + 'trained/scores_I210_' + self.dates + '.json'
             else:
-                y_pred_i210 = func.fit(x_i210).predict(x_i210)
+                pkl_filename = './hov_degradation/static/trained_unsupervised_I210_2020-12-06_to_2020-12-12.pkl'
+                scores_filename = './hov_degradation/static/scores_I210_2020-12-06_to_2020-12-12.json'
 
-            # change output labels for consistency with the classification outputs
-            y_pred_i210[y_pred_i210 == 1] = 0
-            y_pred_i210[y_pred_i210 == -1] = 1
-
-            # compute scores - only available for I-210 since we have ground truth
-            scores[name] = accuracy_score(y_pred_i210, y_i210)
+            # RELOAD EXISTING MODEL
+            with open(pkl_filename, 'rb') as file:
+                unsup = pickle.load(file)
+            # RELOAD EXISTING SCORES
+            with open(scores_filename, 'rb') as file:
+                scores = json.load(file)
 
         # select the best model
-        best_model = max(scores, key=scores.get)
-        func = unsupervised_map[best_model]
-        # func.fit(x_District)
+        best_model = max(scores['unsupervised'], key=scores['unsupervised'].get)
         # fit the data and tag outliers
         if best_model == "Local Outlier Factor":
-            y_pred_District = func.fit_predict(x_District)
+            y_pred_District = unsup.fit_predict(x_District)
         else:
-            y_pred_District = func.fit(x_District).predict(x_District)
+            y_pred_District = unsup.fit(x_District).predict(x_District)
 
         # change output labels for consistency with the classification outputs
         y_pred_District[y_pred_District == 1] = 0
@@ -249,7 +305,6 @@ class Detection:
 
         # Store analysis to class objects, save to disk later
         self.misconfig_ids['unsupervised'] = misconfig_ids
-        self.scores['unsupervised'] = scores
 
     def get_misconfig_meta(self):
         # Save misconfig IDs
@@ -270,14 +325,8 @@ class Detection:
 
     def save(self):
         # store dataframe
-        self.df_District.to_csv(self.outpath + "analysis/analysis_detections_table_D" + self.district + "_" + self.dates + ".csv")
-        self.misconfig_meta.to_csv(self.outpath + "analysis/analysis_misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
-
-        # Save scores
-        with open(self.outpath + 'analysis/analysis_scores_D' + self.district + "_" + self.dates + '.json', 'w') as f:
-            json.dump(self.scores, f, sort_keys=True, indent=4)
-
-        # Save scores
-        with open(self.outpath + 'analysis/analysis_misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
+        self.df_District.to_csv(self.outpath + "analysis/predictions_D" + self.district + "_" + self.dates + ".csv")
+        self.misconfig_meta.to_csv(self.outpath + "analysis/misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
+        with open(self.outpath + 'analysis/misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.misconfig_ids, f, sort_keys=True, indent=4)
 

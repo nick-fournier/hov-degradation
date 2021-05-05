@@ -1,0 +1,19 @@
+{
+    "Decision Tree": {
+        "criterion": "gini",
+        "max_depth": 1
+    },
+    "KNN": {
+        "n_neighbors": 1
+    },
+    "Logistic Regression": {
+        "C": 0.03359818286283781,
+        "penalty": "l2"
+    },
+    "Random Forest": {
+        "criterion": "gini",
+        "max_depth": 1,
+        "max_features": 5,
+        "n_estimators": 130
+    }
+}
