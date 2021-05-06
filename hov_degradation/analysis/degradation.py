@@ -139,9 +139,9 @@ class GetDegradation:
         return df_neighbors
 
     def filter_sensor_data(self):
-        prefiltered_path = self.outpath + 'degradation/degradation_sensors_hourly_D' + self.district + '_lastsave.csv'
-        if not os.path.isdir(self.outpath + 'degradation/'):
-             os.makedirs(self.outpath + 'degradation/')
+        prefiltered_path = self.outpath + 'processed_degradation_data_D' + self.district + '.csv'
+        if not os.path.isdir(self.outpath):
+             os.makedirs(self.outpath)
 
         if not self.saved and os.path.isfile(prefiltered_path):
             pp = ''
@@ -153,18 +153,9 @@ class GetDegradation:
                     self.saved = True
 
         if self.saved and os.path.isfile(prefiltered_path):
-            print('Loading last saved pre-processed hourly sensor data...')
+            print('Loading last saved pre-processed data hourly sensor data...')
             df_allsensors = pd.read_csv(prefiltered_path)
         else:
-            # Headers, file list, and ID list
-            # Checks whether it's running or in debug
-            # if os.path.isfile('hourly_headers.csv'):
-            #     headers = pd.read_csv('hourly_headers.csv', index_col=0, header=0).columns.tolist()
-            # elif os.path.isfile('static/hourly_headers.csv'):
-            #     headers = pd.read_csv('static/hourly_headers.csv', index_col=0, header=0).columns.tolist()
-            # else:
-            #     headers = pd.read_csv('hov_degradation/static/hourly_headers.csv', index_col=0, header=0).columns.tolist()
-
             data = []
             gzlist = pd.Series(os.listdir(self.inpath))
             gzlist = gzlist[gzlist.str.contains("txt.gz")]
@@ -225,55 +216,6 @@ class GetDegradation:
         self.date_string = the_dates.min().strftime('%Y-%m') + "_to_" + the_dates.max().strftime('%Y-%m')
 
         return df_allsensors
-
-    def filter_sensor_data_old(self):
-        prefiltered_path = self.outpath + 'degradation/degradation_sensors_hourly_D' + self.district + '_lastsave.csv'
-        if not os.path.isdir(self.outpath + 'degradation/'):
-             os.makedirs(self.outpath + 'degradation/')
-
-        if not self.saved and os.path.isfile(prefiltered_path):
-            pp = ''
-            while any([pp is 'n', pp is 'y']) is False:
-                pp = input("Extracted hourly sensor data exists, run it again? (y/n):")
-                if len(pp) > 1:
-                    pp = pp[0].lower()
-                if pp is "n":
-                    self.saved = True
-
-        if self.saved and os.path.isfile(prefiltered_path):
-                df_sensors = pd.read_csv(prefiltered_path)
-        else:
-            # Headers, file list, and ID list
-            # Checks whether it's running or in debug
-            if os.path.isfile('static/5min_headers.csv'):
-                headers = pd.read_csv('static/hourly_headers.csv', index_col=0, header=0)
-            else:
-                headers = pd.read_csv('hov_degradation/static/hourly_headers.csv', index_col=0, header=0)
-
-            id_list = self.neighbors['bad_HOV'].to_list() + self.neighbors['neighbor_ML'].to_list()
-            misconfigs = []
-            gzlist = pd.Series(os.listdir(self.inpath))
-            gzlist = gzlist[gzlist.str.contains("txt.gz")]
-
-            # Read file, Filter for misconfig'd sensors
-            for gzf in gzlist:
-                df_hourly = pd.read_csv(self.inpath + gzf, header=None, names=headers)
-                df_hourly = df_hourly[df_hourly['Station'].isin(id_list)]
-                misconfigs.append(df_hourly)
-                print("Done loading " + gzf)
-
-            # Bind together &  Rename Station length to get rid of space
-            df_sensors = pd.concat(misconfigs)
-            df_sensors.rename(columns={"Station Length": "Length"}, inplace=True)
-
-            #Save
-            df_sensors.to_csv(prefiltered_path)
-
-        # Get start/end dates
-        the_dates = pd.to_datetime(df_sensors.Timestamp, format='%m/%d/%Y %H:%M:%S')
-        self.date_string = the_dates.min().strftime('%Y-%m') + "_to_" + the_dates.max().strftime('%Y-%m')
-
-        return df_sensors
 
     def get_vhtvmtdeg(self, df, suffix):
         # Calculate VMT and VHT
@@ -345,7 +287,7 @@ class GetDegradation:
 
         # Saving output
         df_results.to_csv(
-            self.outpath + 'degradation/all_degradation_results_D' + self.district + "_" + self.date_string + '.csv',
+            self.outpath + 'all_sensor_degradation_D' + self.district + "_" + self.date_string + '.csv',
             index=False)
 
     def get_fixed_degradation(self):
@@ -397,7 +339,7 @@ class GetDegradation:
 
         # Saving output
         df_results.to_csv(
-            self.outpath + 'degradation/fixed_degradation_results_D' + self.district + "_" + self.date_string + '.csv',
+            self.outpath + 'fixed_sensor_degradation_D' + self.district + "_" + self.date_string + '.csv',
             index=False)
 
 # if __name__ == "__main__":

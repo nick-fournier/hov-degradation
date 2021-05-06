@@ -1,4 +1,4 @@
-# hov-degradation
+# HOV Degradation
 Serves as the repository for HOV-degradation analysis
 
 ## Contents

@@ -90,14 +90,14 @@ class PlotMisconfigs:
         self.meta = pd.read_csv(self.inpath + f, sep="\t")
 
         # Load JSON files
-        with open(self.outpath + "processed/D7_neighbors_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "processed data/D7_neighbors_" + self.data_dates + ".json") as f:
             self.neighbors = json.load(f)
 
-        with open(self.outpath + "analysis/misconfigs_ids_D7_" + self.data_dates + ".json") as f:
+        with open(self.outpath + "misconfigs_ids_D7_" + self.data_dates + ".json") as f:
             self.dict_mis_ids = json.load(f)
 
-        if os.path.isfile(self.outpath + "analysis/fixed_sensors.json"):
-            with open(self.outpath + "analysis/fixed_sensors.json") as f:
+        if os.path.isfile(self.outpath + "fixed_sensors.json"):
+            with open(self.outpath + "fixed_sensors.json") as f:
                 self.reconfig_lanes = json.load(f)
         else:
             self.reconfig_lanes = {}

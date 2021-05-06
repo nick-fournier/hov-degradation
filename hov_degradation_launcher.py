@@ -30,7 +30,7 @@ if __name__ == '__main__':
         with open(config_path) as fh:
             for line in fh:
                 line_list = line.strip().split(',')
-                if len(line_list) > 0:
+                if len(line_list) > 1:
                     var, value = line_list
                     config[var] = value.strip()
 

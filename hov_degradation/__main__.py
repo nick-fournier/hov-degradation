@@ -81,7 +81,7 @@ class main:
                 delim = "\\" if "\\" in self.inpath_detection else "/"
                 self.subout = list(filter(None, self.inpath_detection.split(delim)))[-1]
                 self.run_preprocessing()
-                self.datestring = [x for x in os.listdir(self.outpath + self.subout + "/processed/") if 'neighbors' in x][0][-29:-5]
+                self.datestring = [x for x in os.listdir(self.outpath + self.subout + "/processed data/") if 'neighbors' in x][0][-29:-5]
 
                 #### ANALYSIS ####
                 self.run_analysis()
@@ -107,7 +107,7 @@ class main:
                 exit = input("Analysis Complete, exit? (y/n): ")
 
     def run_preprocessing(self):
-        the_path = self.outpath + self.subout + '/processed'
+        the_path = self.outpath + self.subout + '/processed data'
         if os.path.isdir(the_path) and len(os.listdir(the_path)) > 0:
             pp = ''
             # Asks if you want to run it again
@@ -177,7 +177,7 @@ class main:
                         ).save()
 
     def run_degradation(self, fixed_sensors=None):
-        the_path = self.outpath + self.subout + '/degradation/'
+        the_path = self.outpath + self.subout
         degtype = 'fixed' if isinstance(fixed_sensors, pd.DataFrame) else 'all'
 
         if os.path.isdir(the_path) and any([degtype in x for x in os.listdir(the_path)]):

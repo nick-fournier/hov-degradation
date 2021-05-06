@@ -59,14 +59,14 @@ class PlotsToDocx:
 
     def get_labels(self):
        # Load JSON files
-        with open(self.outpath + "processed/D" + self.district + "_neighbors_" + self.dates + ".json") as f:
+        with open(self.outpath + "processed data/D" + self.district + "_neighbors_" + self.dates + ".json") as f:
             neighbors = json.load(f)
 
-        with open(self.outpath + "analysis/misconfigs_ids_D" + self.district + "_" + self.dates + ".json") as f:
+        with open(self.outpath + "misconfigs_ids_D" + self.district + "_" + self.dates + ".json") as f:
             mis_ids = json.load(f)
 
-        if os.path.isfile(self.outpath + "analysis/fixed_sensors.json"):
-            with open(self.outpath + "analysis/fixed_sensors.json") as f:
+        if os.path.isfile(self.outpath + "fixed_sensors.json"):
+            with open(self.outpath + "fixed_sensors.json") as f:
                 reconfig_ids = json.load(f)
         else:
             reconfig_ids = {}
@@ -90,10 +90,10 @@ class PlotsToDocx:
 
     def aggregate_results(self):
         # Meta data
-        flist = pd.Series(os.listdir(self.outpath + 'analysis'))
+        flist = pd.Series(os.listdir(self.outpath))
         f = list(flist[flist.str.contains("meta")])[0]
-        df_meta = pd.read_csv(self.outpath + 'analysis/' + f)
-        df_pred = pd.read_csv(self.outpath + 'analysis/predictions_D' + self.district + '_' + self.dates + '.csv')
+        df_meta = pd.read_csv(self.outpath + f)
+        df_pred = pd.read_csv(self.outpath + 'predictions_D' + self.district + '_' + self.dates + '.csv')
 
         total = df_meta.loc[df_meta.Type == 'HV'].ID.count()
         analyzed = df_pred.iloc[:, 0].count()
@@ -169,7 +169,7 @@ class PlotsToDocx:
         return doc
 
     def save(self):
-        self.doc.save(self.outpath + '/analysis/HOV plots_' + str(date.today()) + '.docx')
+        self.doc.save(self.outpath + '/HOV plots_' + str(date.today()) + '.docx')
 
 
 

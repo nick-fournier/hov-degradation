@@ -63,7 +63,7 @@ class Detection:
 
 
         #Static dir
-        self.static = resource_path('static/')
+        self.static = resource_path('hov_degradation/static/')
         # self.static = './hov_degradation/static/'
 
         # Read meta data
@@ -75,15 +75,15 @@ class Detection:
 
         if not os.path.isdir(self.outpath):
             os.makedirs(self.outpath)
-        if not os.path.isdir(self.outpath + "analysis"):
-            os.makedirs(self.outpath + "analysis")
+        if not os.path.isdir(self.outpath):
+            os.makedirs(self.outpath)
 
-        with open(self.outpath + "processed/D" + self.district + "_neighbors_" + self.dates + ".json") as f:
+        with open(self.outpath + "processed data/D" + self.district + "_neighbors_" + self.dates + ".json") as f:
             self.neighbors = json.load(f)
-        self.train_df_i210 = pd.read_csv(self.outpath + "processed/i210_train_data_" + self.dates + ".csv", index_col=0).dropna()
-        self.test_df_i210 = pd.read_csv(self.outpath + "processed/i210_test_data_" + self.dates + ".csv", index_col=0).dropna()
+        self.train_df_i210 = pd.read_csv(self.outpath + "processed data/i210_train_data_" + self.dates + ".csv", index_col=0).dropna()
+        self.test_df_i210 = pd.read_csv(self.outpath + "processed data/i210_test_data_" + self.dates + ".csv", index_col=0).dropna()
         self.df_i210 = pd.concat([self.train_df_i210, self.test_df_i210], axis=0)
-        self.df_District = pd.read_csv(self.outpath + "processed/D" + self.district + "_data_" + self.dates + ".csv", index_col=0).dropna()
+        self.df_District = pd.read_csv(self.outpath + "processed data/D" + self.district + "_data_" + self.dates + ".csv", index_col=0).dropna()
 
         # Running the machine learning
         self.train_classification()
@@ -224,7 +224,7 @@ class Detection:
         print("Anomalies detected by the classification model: "
               "{}".format(misconfig_ids))
 
-        # Store analysis to class objects
+        # Store detection to class objects
         self.misconfig_ids['classification'] = misconfig_ids
 
     def train_unsupervised(self):
@@ -319,7 +319,7 @@ class Detection:
         print("Anomalies detected by the unsupervised model: "
               "{}".format(misconfig_ids))
 
-        # Store analysis to class objects, save to disk later
+        # Store detection to class objects, save to disk later
         self.misconfig_ids['unsupervised'] = misconfig_ids
 
     def get_misconfig_meta(self):
@@ -341,8 +341,8 @@ class Detection:
 
     def save(self):
         # store dataframe
-        self.df_District.to_csv(self.outpath + "analysis/predictions_D" + self.district + "_" + self.dates + ".csv")
-        self.misconfig_meta.to_csv(self.outpath + "analysis/misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
-        with open(self.outpath + 'analysis/misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
+        self.df_District.to_csv(self.outpath + "predictions_D" + self.district + "_" + self.dates + ".csv")
+        self.misconfig_meta.to_csv(self.outpath + "misconfigs_meta_table_D" + self.district + "_" + self.dates + ".csv")
+        with open(self.outpath + 'misconfigs_ids_D' + self.district + "_" + self.dates + '.json', 'w') as f:
             json.dump(self.misconfig_ids, f, sort_keys=True, indent=4)
 
