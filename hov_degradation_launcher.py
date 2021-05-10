@@ -45,9 +45,10 @@ if __name__ == '__main__':
         if not os.path.isdir(config['output_path']):
             os.makedirs(config['output_path'])
 
-        print([config['plotting_date'].replace('-', '_') in x for x in os.listdir(config['detection_data_path'])])
         if not any([config['plotting_date'].replace('-', '_') in x for x in os.listdir(config['detection_data_path'])]):
-            input('Plot date ' + config['plotting_date'] + ' not found in ' + config['detection_data_path'] + ' Press any key to continue')
+            input('Plot date ' + config['plotting_date'] + ' not found in ' +
+                  config['detection_data_path'] +
+                  '. Please add the files or correct the config file.\n Press any key to exit.')
             config['plotting_date'] = None
 
         if not all(config.values()):
