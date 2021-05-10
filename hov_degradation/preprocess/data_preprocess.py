@@ -441,13 +441,19 @@ class PreProcess:
                              'Lane {} Occupancy'.format(lane_num)]
                 total_cols = ['Flow', 'Occupancy']
 
+
+                #Ensuring consistency (no missing time stamps between sensors)
+                missing = list(set(self.df_merge.loc[self.df_merge.ID == neighbor_ml_id, 'Timestamp']).difference(
+                    self.df_merge.loc[self.df_merge.ID == _id, 'Timestamp']))
+
+                self.df_merge = self.df_merge.loc[~self.df_merge.Timestamp.isin(missing), ]
+
                 # update total Flow of the mainline # TODO hov > 1 lanes, Fix else
                 self.df_merge.loc[self.df_merge.ID == neighbor_ml_id, 'Flow'] = \
-                    self.df_merge.loc[
-                        self.df_merge.ID == neighbor_ml_id, 'Flow'].values + \
+                    self.df_merge.loc[self.df_merge.ID == neighbor_ml_id, 'Flow'].values + \
                     self.df_merge.loc[self.df_merge.ID == _id, 'Flow'].values - \
-                    self.df_merge.loc[
-                        self.df_merge.ID == neighbor_ml_id, lane_cols[0]].values
+                    self.df_merge.loc[self.df_merge.ID == neighbor_ml_id, lane_cols[0]].values
+
 
                 # update total Occupancy of the mainline
                 self.df_merge.loc[
