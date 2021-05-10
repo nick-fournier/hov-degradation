@@ -12,6 +12,9 @@ from .reporting.img_to_doc import PlotsToDocx
 from .analysis.degradation import GetDegradation, reconfigs_to_json
 from .analysis.train import Detection
 
+import numpy.random.common
+import numpy.random.bounded_integers
+import numpy.random.entropy
 import os
 import pandas as pd
 import warnings
