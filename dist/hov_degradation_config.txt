@@ -1,5 +1,4 @@
-detection_data_path,     C:\gitclones\connected-corridors\hov-degradation\experiments\input\D7\5min\2018_12_03-07
+detection_data_path,     C:\gitclones\connected-corridors\hov-degradation\experiments\input\D7\5min\2019_12_02-06
 degradation_data_path,   C:\gitclones\connected-corridors\hov-degradation\experiments\input\D7\hourly\2020
 output_path,             C:\gitclones\connected-corridors\hov-degradation\experiments\output
-plotting_date,           2018-12-05
-
+plotting_date,           2019-12-05

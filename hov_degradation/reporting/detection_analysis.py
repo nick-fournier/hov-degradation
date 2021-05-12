@@ -1,0 +1,229 @@
+from plotnine import *
+import os
+import pandas as pd
+import datetime
+import numpy as np
+from pandas.api.types import CategoricalDtype
+
+class DetectionsPlot:
+    def __init__(self, inpath, outpath):
+        self.inpath, self.outpath = inpath, outpath
+
+        # Load data in
+        self.df = self.load_data()
+
+        # # Generate plots
+        # self.freq_plot()
+        # self.date_matrix_plot()
+        #
+        # # Frequency table by date
+        # self.date_count()
+
+    def load_data(self):
+        dirlist = sorted(set(os.listdir(self.outpath)).intersection(os.listdir(self.inpath)))
+
+        # Get latest meta data (this ensures latest sensor data is used)
+        metafile = '/'.join(
+            [self.inpath, dirlist[-1], [x for x in os.listdir(self.inpath + '/' + dirlist[-1]) if 'meta' in x][0]])
+        meta = pd.read_csv(metafile, delimiter='\t')
+        meta = meta.loc[meta.Type == 'HV']
+        meta[['supervised', 'unsupervised', 'available']] = False  # Adding dummy columns
+
+        # Load the detections
+        df = pd.DataFrame()
+        for dir in dirlist:
+            # Load current predictions
+            file = '/'.join([self.outpath, dir, [x for x in os.listdir(self.outpath + dir) if 'predictions' in x][0]])
+            new_df = pd.read_csv(file)
+            new_df = new_df[['Unnamed: 0', 'preds_classification', 'preds_unsupervised']]
+            new_df = new_df.rename(columns={"Unnamed: 0": "ID", "preds_classification": "supervised",
+                                            'preds_unsupervised': 'unsupervised'})
+            new_df.supervised = new_df.supervised.astype(bool)
+            new_df.unsupervised = new_df.unsupervised.astype(bool)
+
+            # Load current meta data, add any missing sensors
+            metafile = '/'.join([self.inpath, dir, [x for x in os.listdir(self.inpath + '/' + dir) if 'meta' in x][0]])
+            new_meta = pd.read_csv(metafile, delimiter='\t')
+            new_meta = new_meta.loc[new_meta.Type == 'HV']
+            new_meta[['supervised', 'unsupervised', 'available']] = False  # Adding dummy columns
+            meta = meta.append(new_meta.loc[new_meta.ID.isin(list(set(new_meta.ID).difference(meta.ID)))])
+
+            # Add in meta data columns, this forms the available data for this run date
+            meta_cols = [x for x in meta.columns if x not in ['supervised', 'unsupervised', 'available']]
+            new_df['available'] = True
+            new_df = new_df.merge(meta[meta_cols], on='ID')
+
+            # Append the unavailable sensors
+            new_df = new_df.append(meta.loc[meta.ID.isin(set(meta.ID).difference(new_df.ID))])
+            new_df['run_id'] = dir
+
+            # Add to master df
+            df = df.append(new_df)
+
+        df['run_id'] = df.apply(lambda row: self.quarter_name(row.run_id), axis=1)
+        df['Detection'] = df.apply(lambda row: self.detection_code(row), axis=1)
+
+        df = df.sort_values('ID')
+
+        return df
+
+    def method_code(self, row):
+        code = ''
+        if row['supervised']:
+            code += 'S'
+        if row['unsupervised']:
+            code += 'U'
+        return code
+
+    def detection_code(self, row):
+        if not row.available:
+            return 'Data unavailable'
+        if row.supervised and row.unsupervised:
+            return 'Possible misconfiguration\n(Supervised and Unsupervised)'
+        if row.supervised and not row.unsupervised:
+            return 'Possible misconfiguration\n(Supervised)'
+        if not row.supervised and row.unsupervised:
+            return 'Possible misconfiguration\n(Unsupervised)'
+        if not row.supervised and not row.unsupervised and row.available:
+            return 'Not misconfigured'
+
+    def quarter_name(self, s):
+        quarters = {'Q1': [1, 2, 3], 'Q2': [4, 5, 6], 'Q3': [7, 8, 9], 'Q4': [10, 11, 12]}
+        year, month, days = s.split('_')
+        days = '-'.join([str(int(x)) for x in days.split('-')])
+        quarter = [x for x in quarters.keys() if int(month) in quarters[x]][0]
+
+        datename = ''.join([datetime.datetime.strptime(month, "%m").strftime("%b"), '. ', days, ', ', year, ' (', quarter, ')'])
+        # quartername = year + '-' + quarter
+        return datename
+
+    def recast_wide(self, df):
+        df.pivot(index='ID', columns='run_id', values='Detection').to_excel(self.outpath + "/detection_matrix.xlsx",
+                                                                            sheet_name='Sheet 1')
+
+    def date_count(self):
+        df_freq = self.df.groupby(['run_id', 'Detection']).size().reset_index(name='count')
+        df_freq = df_freq.pivot(index='run_id', columns='Detection', values='count')
+        df_freq = df_freq.merge(self.df.groupby(['run_id']).size().reset_index(name='Total'), on='run_id')
+
+        # Calculate average total
+        df_freq = df_freq.set_index('run_id')
+        df_freq = df_freq.append(
+            pd.DataFrame(
+                df_freq[df_freq.columns].mean()
+            ).T.set_index(pd.Index(['Mean'], name='run_id'))
+        )
+        df_freq = df_freq.append(
+            pd.DataFrame(
+                df_freq[df_freq.columns].median()
+            ).T.set_index(pd.Index(['Median'], name='run_id'))
+        )
+
+        df_freq = df_freq.append(
+            pd.DataFrame(
+                df_freq[df_freq.columns].std()
+            ).T.set_index(pd.Index(['Standard Deviation'], name='run_id'))
+        )
+
+        # Calculating formatted rate (%) columns
+        df_freq['Sensors analyzed'] = df_freq['Total'] - df_freq['Data unavailable']
+        for col in df_freq.columns:
+            if col not in ['Data unavailable', 'Total']:
+                df_freq[col] = df_freq[col].replace(np.nan, 0)
+
+                if col == 'Sensors analyzed':
+                    perc = round(100 * df_freq[col] / df_freq['Total'], 2)
+                else:
+                    perc = round(100 * df_freq[col] / df_freq['Sensors analyzed'], 2)
+
+                perc = ' (' + perc.astype(str) + "%)"
+                df_freq[col + ' (rate)'] = df_freq[col].astype(int).astype(str) + perc
+
+        perc = round(100 * df_freq['Data unavailable'] / df_freq['Total'], 2)
+        perc = ' (' + perc.astype(str) + "%)"
+        df_freq['Data unavailable (rate)'] = df_freq['Data unavailable'].astype(int).astype(str) + perc
+
+        df_freq.to_excel(self.outpath + "/detection_summary.xlsx", sheet_name='Sheet 1')
+
+    def freq_plot(self):
+        colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
+                  'Possible misconfiguration\n(Supervised)': '#ffff99',
+                  'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
+                  'Possible misconfiguration\n(Unsupervised)': '#984ea3'}
+
+        detects = ['Possible misconfiguration\n(Supervised and Unsupervised)',
+                   'Possible misconfiguration\n(Supervised)',
+                   'Possible misconfiguration\n(Unsupervised)']
+
+        sort_cols = ['detect_sum'] + detects# + ['Not misconfigured']
+
+        # Get the frequencies
+        df_freq = self.df.groupby(['ID', 'Detection']).size().reset_index(name='Count')
+        # Pivot to wide and sort
+        df_sort = df_freq.pivot(index='ID', columns='Detection', values='Count')
+        df_sort['detect_sum'] = df_sort[detects].apply(lambda row: row.sum(skipna=True), axis=1)
+        df_sort = df_sort.sort_values(sort_cols, ascending=[False]*len(sort_cols))
+        _ids = df_sort.index
+
+        self.full_freq = ggplot(data=df_freq[df_freq.ID.isin(_ids)],
+                           mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
+                    geom_col() + \
+                    scale_fill_manual(name='', values=colors) + \
+                    scale_y_continuous(name='Frequency', breaks=range(0, df_freq.Count.max()), expand=(0, 0)) +\
+                    scale_x_discrete(name='VDS ID', limits=_ids) +\
+                    theme_bw() + theme(text=element_text(size=8),
+                                       axis_ticks_length=0,
+                                       axis_text_x=element_blank(),
+                                       legend_background=element_blank(),
+                                       legend_position='top')
+        ggsave(plot=self.full_freq, filename=self.outpath + '/detection_frequency.png', height=4, width=12, dpi=300)
+
+
+        # Truncated plot
+        df_sort_cut = df_sort[df_sort.detect_sum > 2]
+        df_sort_cut = df_sort_cut.sort_values(sort_cols, ascending=[False]*len(sort_cols))
+        _ids_cut = df_sort_cut.index
+
+        self.trunc_freq = ggplot(data=df_freq[df_freq.ID.isin(_ids_cut)],
+                           mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
+                    geom_col() + \
+                    scale_fill_manual(name='', values=colors) + \
+                    scale_y_continuous(name='Frequency', breaks=range(0, df_freq.Count.max()), expand=(0, 0)) +\
+                    scale_x_discrete(name='VDS ID', limits=_ids_cut) +\
+                    theme_bw() + theme(text=element_text(size=8),
+                                       axis_ticks_length=0,
+                                       axis_text_x=element_text(angle=90, size=8),
+                                       legend_background=element_blank(),
+                                       legend_position='top')
+        ggsave(plot=self.trunc_freq, filename=self.outpath + '/detection_frequency_trunc.png', height=4, width=12, dpi=300)
+
+    def date_matrix_plot(self):
+        colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
+                  'Possible misconfiguration\n(Supervised)': '#ffff99',
+                  'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
+                  'Possible misconfiguration\n(Unsupervised)': '#984ea3'}
+
+        chunk_size = 100
+        for i in range(0, len(self.df.ID.unique()), chunk_size):
+            _ids = self.df.ID.unique()[i:i + chunk_size]
+
+            self.date_matrix = ggplot(data=self.df.loc[self.df.ID.isin(_ids), ['ID', 'run_id', 'Detection']],
+                                      mapping=aes(x='factor(ID)', y='run_id', fill='Detection')) + \
+                               ylab('VDS ID') + xlab('Analysis Date') + \
+                               scale_fill_manual(colors) + \
+                               geom_tile() + coord_flip() + theme_bw() +\
+                               theme(axis_text_x=element_text(angle=45, hjust=1), text=element_text(size=6))
+
+            outname = '/detection_matrix_{}-{}.png'.format(i, i+chunk_size)
+            ggsave(plot=self.date_matrix, filename=self.outpath + outname, height=12, width=4, dpi=300)
+
+
+if __name__ == "__main__":
+    DetectionsPlot(inpath='../../experiments/input/D7/5min',
+                   outpath='../../experiments/output/')
+
+    self = DetectionsPlot(inpath='./experiments/input/D7/5min',
+                          outpath='./experiments/output/')
+
+
+

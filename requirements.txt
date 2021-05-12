@@ -7,6 +7,7 @@ cloudpickle==1.1.1
 colorspacious==1.1.2
 cycler==0.10.0
 decorator==4.4.2
+descartes==1.1.0
 future==0.18.2
 gast==0.2.2
 google-pasta==0.2.0
@@ -16,31 +17,40 @@ importlib-metadata==3.3.0
 joblib==1.0.0
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.2
-kiwisolver==1.3.1
+kiwisolver @ file:///C:/ci/kiwisolver_1612282446297/work
 lxml==4.6.2
 Markdown==3.3.3
-matplotlib==3.1.0
-numpy==1.17.0
+matplotlib==3.3.4
+mizani==0.7.3
+mkl-fft==1.3.0
+mkl-random==1.0.4
+mkl-service==2.3.0
+numpy==1.19.5
 opt-einsum==3.3.0
 palettable==3.3.0
-pandas==0.24.2
+pandas==1.1.5
+patsy==0.5.1
 pefile==2019.4.18
+Pillow==8.2.0
+plotnine==0.8.0
 protobuf==3.14.0
 pyinstaller==4.2
 pyinstaller-hooks-contrib==2021.1
-pyparsing==2.4.7
-python-dateutil==2.8.1
+pyparsing @ file:///home/linux1/recipes/ci/pyparsing_1610983426697/work
+python-dateutil @ file:///home/ktietz/src/ci/python-dateutil_1611928101742/work
 python-docx==0.8.10
-pytz==2020.4
+pytz @ file:///tmp/build/80754af9/pytz_1612215392582/work
 pywin32-ctypes==0.2.0
 scikit-learn==0.22.2
 scipy==1.5.4
-six==1.15.0
+six @ file:///C:/ci/six_1605187303045/work
+statsmodels==0.12.2
 tensorboard==1.15.0
 tensorflow==1.15.2
 tensorflow-estimator==1.15.1
 tensorflow-probability==0.8.0
 termcolor==1.1.0
+tornado @ file:///C:/ci/tornado_1606942379977/work
 typing-extensions==3.7.4.3
 Werkzeug==1.0.1
 wincertstore==0.2
