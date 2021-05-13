@@ -60,9 +60,8 @@ class DetectionsPlot:
             # Add to master df
             df = df.append(new_df)
 
-        df['run_id'] = df.apply(lambda row: self.quarter_name(row.run_id), axis=1)
+        df['Date'] = df.apply(lambda row: self.quarter_name(row.run_id), axis=1)
         df['Detection'] = df.apply(lambda row: self.detection_code(row), axis=1)
-
         df = df.sort_values('ID')
 
         return df
@@ -81,9 +80,9 @@ class DetectionsPlot:
         if row.supervised and row.unsupervised:
             return 'Possible misconfiguration\n(Supervised and Unsupervised)'
         if row.supervised and not row.unsupervised:
-            return 'Possible misconfiguration\n(Supervised)'
+            return 'Possible misconfiguration\n(Supervised only)'
         if not row.supervised and row.unsupervised:
-            return 'Possible misconfiguration\n(Unsupervised)'
+            return 'Possible misconfiguration\n(Unsupervised only)'
         if not row.supervised and not row.unsupervised and row.available:
             return 'Not misconfigured'
 
@@ -98,62 +97,58 @@ class DetectionsPlot:
         return datename
 
     def recast_wide(self, df):
-        df.pivot(index='ID', columns='run_id', values='Detection').to_excel(self.outpath + "/detection_matrix.xlsx",
-                                                                            sheet_name='Sheet 1')
+        df_wide = df.pivot(index='ID', columns='run_id', values='Detection')
+        df_wide.to_excel(self.outpath + "/detection_matrix.xlsx", sheet_name='Sheet 1')
 
     def date_count(self):
-        df_freq = self.df.groupby(['run_id', 'Detection']).size().reset_index(name='count')
-        df_freq = df_freq.pivot(index='run_id', columns='Detection', values='count')
-        df_freq = df_freq.merge(self.df.groupby(['run_id']).size().reset_index(name='Total'), on='run_id')
-
-        # Calculate average total
-        df_freq = df_freq.set_index('run_id')
-        df_freq = df_freq.append(
-            pd.DataFrame(
-                df_freq[df_freq.columns].mean()
-            ).T.set_index(pd.Index(['Mean'], name='run_id'))
-        )
-        df_freq = df_freq.append(
-            pd.DataFrame(
-                df_freq[df_freq.columns].median()
-            ).T.set_index(pd.Index(['Median'], name='run_id'))
-        )
-
-        df_freq = df_freq.append(
-            pd.DataFrame(
-                df_freq[df_freq.columns].std()
-            ).T.set_index(pd.Index(['Standard Deviation'], name='run_id'))
-        )
-
-        # Calculating formatted rate (%) columns
+        df_freq = self.df.groupby(['Date', 'Detection']).size().reset_index(name='count')
+        df_freq = df_freq.pivot(index='Date', columns='Detection', values='count')
+        df_freq = df_freq.merge(self.df.groupby(['Date']).size().reset_index(name='Total'), on='Date')
         df_freq['Sensors analyzed'] = df_freq['Total'] - df_freq['Data unavailable']
-        for col in df_freq.columns:
-            if col not in ['Data unavailable', 'Total']:
-                df_freq[col] = df_freq[col].replace(np.nan, 0)
+        df_freq['Total detections'] = df_freq[[x for x in df_freq.columns if 'Possible' in x]].apply(lambda row: row.sum(), axis=1)
 
-                if col == 'Sensors analyzed':
-                    perc = round(100 * df_freq[col] / df_freq['Total'], 2)
-                else:
-                    perc = round(100 * df_freq[col] / df_freq['Sensors analyzed'], 2)
+        # Date row order
+        date_cat = [self.quarter_name(x) for x in sorted(self.df.run_id.unique())]
+        date_cat += ['Mean', 'Median', 'Standard Deviation']
+        date_cat = CategoricalDtype(categories=date_cat, ordered=True)
 
-                perc = ' (' + perc.astype(str) + "%)"
-                df_freq[col + ' (rate)'] = df_freq[col].astype(int).astype(str) + perc
+        # Sort by date
+        df_freq['Date'] = df_freq.Date.astype(date_cat)
+        df_freq = df_freq.sort_values('Date')
+        df_freq = df_freq.set_index('Date')
 
-        perc = round(100 * df_freq['Data unavailable'] / df_freq['Total'], 2)
-        perc = ' (' + perc.astype(str) + "%)"
-        df_freq['Data unavailable (rate)'] = df_freq['Data unavailable'].astype(int).astype(str) + perc
+        cols = [x for x in df_freq.columns if x != 'Total']
+        # 1. Calculate rate (%)
+        for col in cols:
+            df_freq[col] = df_freq[col].replace(np.nan, 0)
+            if col in ['Sensors analyzed', 'Data unavailable']:
+                df_freq[col + '_p'] = df_freq[col] / df_freq['Total']
+            else:
+                df_freq[col + '_p'] = df_freq[col] / df_freq['Sensors analyzed']
+
+        # 2. Calculate stats for both
+        stats = {'Mean': df_freq[df_freq.columns].mean(),
+                 'Median': df_freq[df_freq.columns].median(),
+                 'Standard Deviation': df_freq[df_freq.columns].std()}
+        df_freq = df_freq.append(pd.DataFrame(stats).T)
+
+        # 3. Format into string
+        for col in cols:
+            num = round(df_freq[col], 1).astype(str)
+            perc = round(100 * df_freq[col + '_p'], 1).astype(str)
+            df_freq[col + ' (rate)'] = num + " (" + perc + "%)"
 
         df_freq.to_excel(self.outpath + "/detection_summary.xlsx", sheet_name='Sheet 1')
 
     def freq_plot(self):
         colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
-                  'Possible misconfiguration\n(Supervised)': '#ffff99',
+                  'Possible misconfiguration\n(Supervised only)': '#ffff99',
                   'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
-                  'Possible misconfiguration\n(Unsupervised)': '#984ea3'}
+                  'Possible misconfiguration\n(Unsupervised only)': '#984ea3'}
 
         detects = ['Possible misconfiguration\n(Supervised and Unsupervised)',
-                   'Possible misconfiguration\n(Supervised)',
-                   'Possible misconfiguration\n(Unsupervised)']
+                   'Possible misconfiguration\n(Supervised only)',
+                   'Possible misconfiguration\n(Unsupervised only )']
 
         sort_cols = ['detect_sum'] + detects# + ['Not misconfigured']
 
@@ -199,16 +194,16 @@ class DetectionsPlot:
 
     def date_matrix_plot(self):
         colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
-                  'Possible misconfiguration\n(Supervised)': '#ffff99',
+                  'Possible misconfiguration\n(Supervised only)': '#ffff99',
                   'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
-                  'Possible misconfiguration\n(Unsupervised)': '#984ea3'}
+                  'Possible misconfiguration\n(Unsupervised only)': '#984ea3'}
 
         chunk_size = 100
         for i in range(0, len(self.df.ID.unique()), chunk_size):
             _ids = self.df.ID.unique()[i:i + chunk_size]
 
-            self.date_matrix = ggplot(data=self.df.loc[self.df.ID.isin(_ids), ['ID', 'run_id', 'Detection']],
-                                      mapping=aes(x='factor(ID)', y='run_id', fill='Detection')) + \
+            self.date_matrix = ggplot(data=self.df.loc[self.df.ID.isin(_ids), ['ID', 'Date', 'Detection']],
+                                      mapping=aes(x='factor(ID)', y='Date', fill='Detection')) + \
                                ylab('VDS ID') + xlab('Analysis Date') + \
                                scale_fill_manual(colors) + \
                                geom_tile() + coord_flip() + theme_bw() +\
