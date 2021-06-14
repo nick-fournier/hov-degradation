@@ -9,8 +9,15 @@ class DetectionsPlot:
     def __init__(self, inpath, outpath):
         self.inpath, self.outpath = inpath, outpath
 
+        # Defined colors
+        self.colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#7fc97f',
+                       'Possible misconfiguration\n(Supervised only)': '#beaed4',
+                       'Possible misconfiguration\n(Supervised and Unsupervised)': '#fdc086',
+                       'Possible misconfiguration\n(Unsupervised only)': '#386cb0'}
+
         # Load data in
         self.df = self.load_data()
+
 
         # # Generate plots
         # self.freq_plot()
@@ -96,8 +103,22 @@ class DetectionsPlot:
         # quartername = year + '-' + quarter
         return datename
 
-    def recast_wide(self, df):
-        df_wide = df.pivot(index='ID', columns='run_id', values='Detection')
+    def recast_wide(self):
+        df_wide = self.df.pivot(index='ID', columns='run_id', values='Detection')
+        df_wide = df_wide.merge(right=self.df[['ID', 'User_ID_1']].drop_duplicates(), on='ID')
+        df_wide.rename(columns={'User_ID_1': 'MS ID'}, inplace=True)
+
+        # Get detection counts
+        counts = self.df.groupby(['ID', 'Detection']).size().reset_index().rename(columns={0: 'Total detections'})
+        counts = counts[~counts.Detection.isin(['Data unavailable', 'Not misconfigured'])].groupby('ID').sum()
+        counts = counts.append(
+            pd.DataFrame({'Total detections': 0},
+                         index=[x for x in df_wide.ID.unique() if x not in counts.index.unique()])
+        )
+        counts.index.name = 'ID'
+
+        # Merge the counts and sort
+        df_wide = df_wide.merge(right=counts, how='left', on='ID').sort_values('Total detections', ascending=False)
         df_wide.to_excel(self.outpath + "/detection_matrix.xlsx", sheet_name='Sheet 1')
 
     def date_count(self):
@@ -141,16 +162,9 @@ class DetectionsPlot:
         df_freq.to_excel(self.outpath + "/detection_summary.xlsx", sheet_name='Sheet 1')
 
     def freq_plot(self):
-        colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
-                  'Possible misconfiguration\n(Supervised only)': '#ffff99',
-                  'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
-                  'Possible misconfiguration\n(Unsupervised only)': '#984ea3'}
 
-        detects = ['Possible misconfiguration\n(Supervised and Unsupervised)',
-                   'Possible misconfiguration\n(Supervised only)',
-                   'Possible misconfiguration\n(Unsupervised only )']
-
-        sort_cols = ['detect_sum'] + detects# + ['Not misconfigured']
+        detects = [x for x in self.colors.keys() if x not in ['Data unavailable', 'Not misconfigured']]
+        sort_cols = ['detect_sum'] + detects
 
         # Get the frequencies
         df_freq = self.df.groupby(['ID', 'Detection']).size().reset_index(name='Count')
@@ -163,7 +177,7 @@ class DetectionsPlot:
         self.full_freq = ggplot(data=df_freq[df_freq.ID.isin(_ids)],
                            mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
                     geom_col() + \
-                    scale_fill_manual(name='', values=colors) + \
+                    scale_fill_manual(name='', values=self.colors) + \
                     scale_y_continuous(name='Frequency', breaks=range(0, df_freq.Count.max()), expand=(0, 0)) +\
                     scale_x_discrete(name='VDS ID', limits=_ids) +\
                     theme_bw() + theme(text=element_text(size=8),
@@ -182,7 +196,7 @@ class DetectionsPlot:
         self.trunc_freq = ggplot(data=df_freq[df_freq.ID.isin(_ids_cut)],
                            mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
                     geom_col() + \
-                    scale_fill_manual(name='', values=colors) + \
+                    scale_fill_manual(name='', values=self.colors) + \
                     scale_y_continuous(name='Frequency', breaks=range(0, df_freq.Count.max()), expand=(0, 0)) +\
                     scale_x_discrete(name='VDS ID', limits=_ids_cut) +\
                     theme_bw() + theme(text=element_text(size=8),
@@ -193,11 +207,6 @@ class DetectionsPlot:
         ggsave(plot=self.trunc_freq, filename=self.outpath + '/detection_frequency_trunc.png', height=4, width=12, dpi=300)
 
     def date_matrix_plot(self):
-        colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
-                  'Possible misconfiguration\n(Supervised only)': '#ffff99',
-                  'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
-                  'Possible misconfiguration\n(Unsupervised only)': '#984ea3'}
-
         chunk_size = 100
         for i in range(0, len(self.df.ID.unique()), chunk_size):
             _ids = self.df.ID.unique()[i:i + chunk_size]
@@ -205,7 +214,7 @@ class DetectionsPlot:
             self.date_matrix = ggplot(data=self.df.loc[self.df.ID.isin(_ids), ['ID', 'Date', 'Detection']],
                                       mapping=aes(x='factor(ID)', y='Date', fill='Detection')) + \
                                ylab('VDS ID') + xlab('Analysis Date') + \
-                               scale_fill_manual(colors) + \
+                               scale_fill_manual(self.colors) + \
                                geom_tile() + coord_flip() + theme_bw() +\
                                theme(axis_text_x=element_text(angle=45, hjust=1), text=element_text(size=6))
 
@@ -214,11 +223,20 @@ class DetectionsPlot:
 
 
 if __name__ == "__main__":
-    DetectionsPlot(inpath='../../experiments/input/D7/5min',
-                   outpath='../../experiments/output/')
 
-    self = DetectionsPlot(inpath='./experiments/input/D7/5min',
-                          outpath='./experiments/output/')
+    # line by line or as source
+    if os.path.isdir('../../experiments/input/D7/5min'):
+        analysis = DetectionsPlot(inpath='../../experiments/input/D7/5min', outpath='../../experiments/output/')
+    else:
+        analysis = DetectionsPlot(inpath='./experiments/input/D7/5min', outpath='./experiments/output/')
+
+    # Generate plots
+    analysis.freq_plot()
+    analysis.date_matrix_plot()
+    # Frequency table by date
+    analysis.date_count()
+
+
 
 
 
