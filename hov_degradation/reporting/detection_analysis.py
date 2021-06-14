@@ -10,14 +10,17 @@ class DetectionsPlot:
         self.inpath, self.outpath = inpath, outpath
 
         # Defined colors
-        self.colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#7fc97f',
-                       'Possible misconfiguration\n(Supervised only)': '#beaed4',
-                       'Possible misconfiguration\n(Supervised and Unsupervised)': '#fdc086',
-                       'Possible misconfiguration\n(Unsupervised only)': '#386cb0'}
+        self.colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
+                       'Possible misconfiguration\n(Supervised only)': '#377eb8',
+                       'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
+                       'Possible misconfiguration\n(Unsupervised only)': '#e7298a'}
+
+        self.colors_lite = {'Data unavailable': '#bababa',
+                            'Not misconfigured': '#4daf4a',
+                            'Possible misconfiguration': '#e41a1c'}
 
         # Load data in
         self.df = self.load_data()
-
 
         # # Generate plots
         # self.freq_plot()
@@ -164,7 +167,7 @@ class DetectionsPlot:
     def freq_plot(self):
 
         detects = [x for x in self.colors.keys() if x not in ['Data unavailable', 'Not misconfigured']]
-        sort_cols = ['detect_sum'] + detects
+        sort_cols = ['detect_sum'] + detects + ['Not misconfigured']
 
         # Get the frequencies
         df_freq = self.df.groupby(['ID', 'Detection']).size().reset_index(name='Count')
@@ -186,6 +189,32 @@ class DetectionsPlot:
                                        legend_background=element_blank(),
                                        legend_position='top')
         ggsave(plot=self.full_freq, filename=self.outpath + '/detection_frequency.png', height=4, width=12, dpi=300)
+
+
+
+        # Simplified plot: 'lite'
+        df_freq_lite = df_freq.copy(deep=True)
+        df_freq_lite.Detection = ['Possible misconfiguration' if 'Possible misconfiguration' in x else x for x in df_freq_lite.Detection]
+        df_freq_lite = df_freq_lite.groupby(['ID', 'Detection']).agg({'Count': 'sum'}).reset_index()
+        # Pivot to wide and sort
+        sort_cols_lite = ['detect_sum', 'Possible misconfiguration', 'Not misconfigured']
+        df_sort_lite = df_freq_lite.pivot(index='ID', columns='Detection', values='Count')
+        df_sort_lite['detect_sum'] = df_sort_lite[['Possible misconfiguration']].apply(lambda row: row.sum(skipna=True), axis=1)
+        df_sort_lite = df_sort_lite.sort_values(sort_cols_lite, ascending=[False]*len(sort_cols_lite))
+        _ids_lite = df_sort_lite.index
+
+        self.full_freq_lite = ggplot(data=df_freq_lite[df_freq_lite.ID.isin(_ids_lite)],
+                           mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
+                    geom_col() + \
+                    scale_fill_manual(name='', values=self.colors_lite) + \
+                    scale_y_continuous(name='Frequency', breaks=range(0, df_freq.Count.max(), 2), expand=(0, 0)) +\
+                    scale_x_discrete(name='VDS ID', limits=_ids_lite) +\
+                    theme_bw() + theme(text=element_text(size=8),
+                                       axis_ticks_length=0,
+                                       axis_text_x=element_blank(),
+                                       legend_background=element_blank(),
+                                       legend_position='bottom')
+        ggsave(plot=self.full_freq_lite, filename=self.outpath + '/detection_frequency_lite.png', height=2, width=6, dpi=300)
 
 
         # Truncated plot
