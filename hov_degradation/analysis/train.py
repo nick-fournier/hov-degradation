@@ -5,7 +5,7 @@ IN NO EVENT SHALL REGENTS BE LIABLE TO ANY PARTY FOR DIRECT, INDIRECT, SPECIAL, 
 
 REGENTS SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE. THE SOFTWARE AND ACCOMPANYING DOCUMENTATION, IF ANY, PROVIDED HEREUNDER IS PROVIDED "AS IS". REGENTS HAS NO OBLIGATION TO PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
 """
-
+import numpy
 import numpy as np
 import pandas as pd
 import os
@@ -20,7 +20,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import RandomForestClassifier, IsolationForest
 from sklearn.covariance import EllipticEnvelope
 from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, plot_confusion_matrix
 
 def check_path(path):
     if path[-1] is not "/":
@@ -58,6 +58,7 @@ class Detection:
         self.retrain = retrain
         self.hyperparams = None
         self.scores = {}
+        self.df_scores = pd.DataFrame()
         self.misconfig_ids = {}
         self.misconfig_meta = None
 
@@ -174,6 +175,7 @@ class Detection:
                 json.dump(self.hyperparams, f, sort_keys=True, indent=4)
 
             # train
+            df_scores = pd.DataFrame()
             scores = {name: None for name in classifiers_map.keys()}
             np.random.seed(12345)
             for name, func in classifiers_map.items():
@@ -182,7 +184,31 @@ class Detection:
                 clf.fit(x_train_i210, y_train_i210)
                 train_score = clf.score(x_train_i210, y_train_i210)
                 test_score = clf.score(x_test_i210, y_test_i210)
+                # plot_confusion_matrix(clf, x_test_i210, y_test_i210)
+                # plt.show()
+                confuse_test = dict(zip(['True Negative', 'False Positive', 'False Negative', 'True Positive'],
+                                     confusion_matrix(y_test_i210, clf.predict(x_test_i210), normalize='all').ravel()))
+                confuse_train = dict(zip(['True Negative', 'False Positive', 'False Negative', 'True Positive'],
+                                     confusion_matrix(y_train_i210, clf.predict(x_train_i210), normalize='all').ravel()))
+                confuse_total = dict(zip(['True Negative', 'False Positive', 'False Negative', 'True Positive'],
+                                         confusion_matrix(np.concatenate((y_test_i210, y_train_i210)),
+                                                          clf.predict(np.concatenate((x_test_i210, x_train_i210))),
+                                                          normalize='all').ravel()))
+
                 scores[name] = {'train': train_score, 'test': test_score}
+                scores[name].update({"test confusion": confuse_test})
+                scores[name].update({"train confusion": confuse_train})
+                scores[name].update({"total confusion": confuse_total})
+
+                # Put into DataFrame
+                df_scores = df_scores.append({**{'Type': 'Classification',
+                                 'Method': name,
+                                 'Train score': train_score,
+                                 'Test score': test_score},
+                              **confuse_total}, ignore_index=True)
+
+            df_scores = df_scores[['Type', 'Method', 'Test score', 'Train score',
+                                   'True Negative', 'True Positive', 'False Negative', 'False Positive']]
 
             # select the best model
             # best_model = max(scores, key=operator.itemgetter(1))
@@ -196,8 +222,12 @@ class Detection:
 
             # Save scores
             self.scores['classification'] = scores
+            self.df_scores = self.df_scores.append(df_scores)
+
             with open(self.outpath + 'trained/scores_I210_' + self.dates + '.json', 'w') as f:
                 json.dump(self.scores, f, sort_keys=True, indent=4)
+
+            self.df_scores.to_csv(self.outpath + 'trained/scores_I210_' + self.dates + '.csv')
 
         else:
             # IF LOCALLY TRAINED MODEL
@@ -215,7 +245,7 @@ class Detection:
                 clf = pickle.load(file)
 
 
-        # predict the ids onto the processed data
+        # predict the ids onto the processed data for the whole district
         y_pred_District = clf.predict(x_District)
         self.df_District['preds_classification'] = y_pred_District
 
@@ -252,6 +282,7 @@ class Detection:
         # IF NEW RETRAINING MODEL
         if self.retrain:
             # train
+            df_scores = pd.DataFrame()
             scores = {name: None for name in unsupervised_map.keys()}
             np.random.seed(12345)
             for name, func in unsupervised_map.items():
@@ -266,10 +297,28 @@ class Detection:
                 y_pred_i210[y_pred_i210 == -1] = 1
 
                 # compute scores - only available for I-210 since we have ground truth
-                scores[name] = accuracy_score(y_pred_i210, y_i210)
+                # scores[name] = accuracy_score(y_pred_i210, y_i210)
+
+                # plot_confusion_matrix(clf, x_test_i210, y_test_i210)
+                # plt.show()
+                confuse_total = dict(zip(['True Negative', 'False Positive', 'False Negative', 'True Positive'],
+                                         confusion_matrix(y_i210, y_pred_i210, normalize='all').ravel()))
+                scores[name] = {'test': accuracy_score(y_pred_i210, y_i210),
+                                "total confusion": confuse_total}
+
+                # Put into DataFrame
+                df_scores = df_scores.append({**{'Type': 'Unsupervised',
+                                                 'Method': name,
+                                                 'Train score': None,
+                                                 'Test score': accuracy_score(y_pred_i210, y_i210)},
+                                              **confuse_total}, ignore_index=True)
+
+            df_scores = df_scores[['Type', 'Method', 'Test score', 'Train score',
+                                   'True Negative', 'True Positive', 'False Negative', 'False Positive']]
 
             # select the best model
-            best_model = max(scores, key=scores.get)
+            best_model = max(scores, key=lambda x: scores[x]['test'])
+
             unsup = unsupervised_map[best_model]
             # func.fit(x_District)
 
@@ -279,15 +328,19 @@ class Detection:
                 pickle.dump(unsup, file)
 
             # Save scores
+            self.df_scores = self.df_scores.append(df_scores).reset_index(drop=True)
             self.scores['unsupervised'] = scores
             with open(self.outpath + 'trained/scores_I210_' + self.dates + '.json', 'w') as f:
                 json.dump(self.scores, f, sort_keys=True, indent=4)
+
+            self.df_scores.to_csv(self.outpath + 'trained/scores_I210_' + self.dates + '.csv')
 
         else:
             # IF LOCALLY TRAINED MODEL
             if os.path.isdir(self.outpath + 'trained') and len(os.listdir(self.outpath + 'trained')) > 0:
                 pkl_filename = self.outpath + 'trained/trained_classification_I210_' + self.dates + '.pkl'
                 scores_filename = self.outpath + 'trained/scores_I210_' + self.dates + '.json'
+
             else:
                 pkl_filename = self.static + 'trained_unsupervised_I210_2020-12-06_to_2020-12-12.pkl'
                 scores_filename = self.static + 'scores_I210_2020-12-06_to_2020-12-12.json'
