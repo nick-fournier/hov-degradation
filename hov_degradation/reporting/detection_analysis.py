@@ -12,12 +12,12 @@ class DetectionsPlot:
         # Defined colors
         self.colors = {'Data unavailable': '#bababa', 'Not misconfigured': '#4daf4a',
                        'Possible misconfiguration\n(Supervised only)': '#377eb8',
-                       'Possible misconfiguration\n(Supervised and Unsupervised)': '#e41a1c',
+                       'Possible misconfiguration\n(Supervised and Unsupervised)': '#ff7f00',
                        'Possible misconfiguration\n(Unsupervised only)': '#e7298a'}
 
         self.colors_lite = {'Data unavailable': '#bababa',
-                            'Not misconfigured': '#4daf4a',
-                            'Possible misconfiguration': '#e41a1c'}
+                            'Not misconfigured': '#1b9e77',
+                            'Possible misconfiguration': '#d95f02'}
 
         # Load data in
         self.df = self.load_data()
