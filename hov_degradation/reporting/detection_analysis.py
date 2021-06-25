@@ -15,6 +15,14 @@ class DetectionsPlot:
                        'Possible misconfiguration\n(Supervised and Unsupervised)': '#ff7f00',
                        'Possible misconfiguration\n(Unsupervised only)': '#e7298a'}
 
+        self.colors_sup = {'Data unavailable': '#bababa',
+                           'Not misconfigured': '#4daf4a',
+                           'Supervised': '#377eb8'}
+
+        self.colors_unsup = {'Data unavailable': '#bababa',
+                             'Not misconfigured': '#4daf4a',
+                             'Unsupervised': '#e7298a'}
+
         self.colors_lite = {'Data unavailable': '#bababa',
                             'Not misconfigured': '#1b9e77',
                             'Possible misconfiguration': '#d95f02'}
@@ -213,7 +221,7 @@ class DetectionsPlot:
                                        axis_ticks_length=0,
                                        axis_text_x=element_blank(),
                                        legend_background=element_blank(),
-                                       legend_position='bottom')
+                                       legend_position='right')
         ggsave(plot=self.full_freq_lite, filename=self.outpath + '/detection_frequency_lite.png', height=2, width=6, dpi=300)
 
 
@@ -228,12 +236,69 @@ class DetectionsPlot:
                     scale_fill_manual(name='', values=self.colors) + \
                     scale_y_continuous(name='Frequency', breaks=range(0, df_freq.Count.max()), expand=(0, 0)) +\
                     scale_x_discrete(name='VDS ID', limits=_ids_cut) +\
-                    theme_bw() + theme(text=element_text(size=8),
+                    theme_bw() + theme(text=element_text(size=10),
                                        axis_ticks_length=0,
-                                       axis_text_x=element_text(angle=90, size=8),
+                                       axis_text_x=element_text(angle=90, size=10),
                                        legend_background=element_blank(),
                                        legend_position='top')
         ggsave(plot=self.trunc_freq, filename=self.outpath + '/detection_frequency_trunc.png', height=4, width=12, dpi=300)
+
+
+        # Truncated plot - supervised detections
+        df_freq_sup = df_freq.copy(deep=True)
+        df_freq_sup.Detection = ['Supervised' if 'Supervised' in x else x for x in df_freq_sup.Detection]
+        df_freq_sup.Detection = ['Not misconfigured' if 'Unsupervised' in x else x for x in df_freq_sup.Detection]
+        df_freq_sup = df_freq_sup.groupby(['ID', 'Detection']).agg({'Count': 'sum'}).reset_index()
+        # Pivot to wide and sort
+        sort_cols_sup = ['detect_sum', 'Supervised', 'Not misconfigured']
+        df_sort_sup = df_freq_sup.pivot(index='ID', columns='Detection', values='Count')
+        df_sort_sup['detect_sum'] = df_sort_sup[['Supervised']].apply(lambda row: row.sum(skipna=True), axis=1)
+        df_sort_sup = df_sort_sup[df_sort_sup.detect_sum > 2]
+        df_sort_sup = df_sort_sup.sort_values(sort_cols_sup, ascending=[False] * len(sort_cols_sup))
+        _ids_sup = df_sort_sup.index
+
+        self.trunc_sup = ggplot(data=df_freq_sup[df_freq_sup.ID.isin(_ids_sup)],
+                           mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
+                    geom_col() + \
+                    scale_fill_manual(name='', values=self.colors_sup) + \
+                    scale_y_continuous(name='Frequency', breaks=range(0, df_freq_sup.Count.max()), expand=(0, 0)) +\
+                    scale_x_discrete(name='VDS ID', limits=_ids_sup) +\
+                    theme_bw() + theme(text=element_text(size=10),
+                                       axis_ticks_length=0,
+                                       axis_text_x=element_text(angle=90, size=10),
+                                       legend_background=element_blank(),
+                                       legend_position='top')
+        ggsave(plot=self.trunc_sup, filename=self.outpath + '/detection_frequency_sup.png', height=4, width=12, dpi=300)
+
+
+        # Truncated plot - unsupervised detections
+        df_freq_unsup = df_freq.copy(deep=True)
+        df_freq_unsup.Detection = ['Unsupervised' if 'Unsupervised' in x else x for x in df_freq_unsup.Detection]
+        df_freq_unsup.Detection = ['Not misconfigured' if 'Supervised' in x else x for x in df_freq_unsup.Detection]
+        df_freq_unsup = df_freq_unsup.groupby(['ID', 'Detection']).agg({'Count': 'sum'}).reset_index()
+        # Pivot to wide and sort
+        sort_cols_unsup = ['detect_sum', 'Unsupervised', 'Not misconfigured']
+        df_sort_unsup = df_freq_unsup.pivot(index='ID', columns='Detection', values='Count')
+        df_sort_unsup['detect_sum'] = df_sort_unsup[['Unsupervised']].apply(lambda row: row.sum(skipna=True), axis=1)
+        df_sort_unsup = df_sort_unsup[df_sort_unsup.detect_sum > 2]
+        df_sort_unsup = df_sort_unsup.sort_values(sort_cols_unsup, ascending=[False] * len(sort_cols_unsup))
+        _ids_unsup = df_sort_unsup.index
+
+
+        self.trunc_unsup = ggplot(data=df_freq_unsup[df_freq_unsup.ID.isin(_ids_unsup)],
+                                mapping=aes(x='factor(ID)', y='Count', fill='Detection')) + \
+                         geom_col() + \
+                         scale_fill_manual(name='', values=self.colors_unsup) + \
+                         scale_y_continuous(name='Frequency', breaks=range(0, df_freq_unsup.Count.max()), expand=(0, 0)) + \
+                         scale_x_discrete(name='VDS ID', limits=_ids_unsup) + \
+                         theme_bw() + theme(text=element_text(size=10),
+                                            axis_ticks_length=0,
+                                            axis_text_x=element_text(angle=90, size=10),
+                                            legend_background=element_blank(),
+                                            legend_position='top')
+        ggsave(plot=self.trunc_unsup, filename=self.outpath + '/detection_frequency_unsup.png', height=4, width=12, dpi=300)
+
+
 
     def date_matrix_plot(self):
         chunk_size = 100
