@@ -121,19 +121,25 @@ class DetectionsPlot:
         df_wide.rename(columns={'User_ID_1': 'MS ID'}, inplace=True)
 
         # Get detection counts
-        counts = self.df.groupby(['ID', 'Detection']).size().reset_index().rename(columns={0: 'Total detections'})
-        counts = counts[~counts.Detection.isin(['Data unavailable', 'Not misconfigured'])].groupby('ID').sum()
-        counts = counts.append(
-            pd.DataFrame({'Total detections': 0},
-                         index=[x for x in df_wide.ID.unique() if x not in counts.index.unique()])
-        )
-        counts.index.name = 'ID'
+        filters = {'Total': ['Data unavailable', 'Not misconfigured'],
+                   'Unsupervised': ['Data unavailable', 'Not misconfigured', 'Possible misconfiguration\n(Unsupervised only)'],
+                   'Supervised': ['Data unavailable', 'Not misconfigured', 'Possible misconfiguration\n(Supervised only)']}
+
+        counts = self.df.groupby(['ID']).size().reset_index().drop(columns=0)
+        for f in filters:
+            f_counts = self.df.groupby(['ID', 'Detection']).size().reset_index()
+            f_counts = f_counts[~f_counts.Detection.isin(filters[f])].groupby('ID').sum().reset_index().rename(columns={0: f})
+            f_counts = f_counts.append(
+                pd.DataFrame({f: 0}, index=[x for x in df_wide.ID.unique() if x not in f_counts.ID.unique()])
+            )
+            counts = pd.merge(counts, f_counts, on='ID')
 
         # Merge the counts and sort, also add version with meta data
         df_wide = df_wide.merge(right=counts, how='left', on='ID').sort_values('Total detections', ascending=False)
         df_wide_meta = df_wide.merge(right=self.meta, how='left', on='ID').sort_values('Total detections', ascending=False)
-        df_wide.to_excel(self.outpath + "/detection_matrix.xlsx", sheet_name='Sheet 1')
-        df_wide_meta.to_excel(self.outpath + "/detection_matrix_meta.xlsx", sheet_name='Sheet 1')
+
+        df_wide.to_excel(self.outpath + "/detection_matrix.xlsx", sheet_name='Sheet1')
+        df_wide_meta.to_excel(self.outpath + "/detection_matrix_meta.xlsx", sheet_name='Sheet1')
 
     def date_count(self):
         df_freq = self.df.groupby(['Date', 'Detection']).size().reset_index(name='count')
