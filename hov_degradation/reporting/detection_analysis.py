@@ -45,6 +45,7 @@ class DetectionsPlot:
             [self.inpath, dirlist[-1], [x for x in os.listdir(self.inpath + '/' + dirlist[-1]) if 'meta' in x][0]])
         meta = pd.read_csv(metafile, delimiter='\t')
         meta = meta.loc[meta.Type == 'HV']
+        self.meta = meta.drop(columns=['User_ID_1'] + list(meta.columns[meta.isna().all()])).copy()
         meta[['supervised', 'unsupervised', 'available']] = False  # Adding dummy columns
 
         # Load the detections
@@ -128,9 +129,11 @@ class DetectionsPlot:
         )
         counts.index.name = 'ID'
 
-        # Merge the counts and sort
+        # Merge the counts and sort, also add version with meta data
         df_wide = df_wide.merge(right=counts, how='left', on='ID').sort_values('Total detections', ascending=False)
+        df_wide_meta = df_wide.merge(right=self.meta, how='left', on='ID').sort_values('Total detections', ascending=False)
         df_wide.to_excel(self.outpath + "/detection_matrix.xlsx", sheet_name='Sheet 1')
+        df_wide_meta.to_excel(self.outpath + "/detection_matrix_meta.xlsx", sheet_name='Sheet 1')
 
     def date_count(self):
         df_freq = self.df.groupby(['Date', 'Detection']).size().reset_index(name='count')
@@ -298,8 +301,6 @@ class DetectionsPlot:
                                             legend_position='top')
         ggsave(plot=self.trunc_unsup, filename=self.outpath + '/detection_frequency_unsup.png', height=4, width=12, dpi=300)
 
-
-
     def date_matrix_plot(self):
         chunk_size = 100
         for i in range(0, len(self.df.ID.unique()), chunk_size):
@@ -328,6 +329,7 @@ if __name__ == "__main__":
     analysis.freq_plot()
     analysis.date_matrix_plot()
     # Frequency table by date
+    analysis.recast_wide()
     analysis.date_count()
 
 
