@@ -7,9 +7,11 @@ REGENTS SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT LIMITED TO, TH
 """
 
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 import pandas as pd
 import os
 import json
+from datetime import datetime
 from cycler import cycler
 # from palettable.colorbrewer.qualitative import Set1_7
 
@@ -137,10 +139,16 @@ class PlotMisconfigs:
             main_num_lanes = self.meta[self.meta['ID'] == main_neighbor]['Lanes'].iloc[0]
 
             # data frames
-            _df = self.data[self.data['Station'] == mis_id]
-            _df_up = self.data[self.data['Station'] == up_neighbor]
-            _df_down = self.data[self.data['Station'] == down_neighbor]
-            _df_main = self.data[self.data['Station'] == main_neighbor]
+            _df = self.data.loc[self.data['Station'] == mis_id, :].copy()
+            _df_up = self.data[self.data['Station'] == up_neighbor].copy()
+            _df_down = self.data[self.data['Station'] == down_neighbor].copy()
+            _df_main = self.data[self.data['Station'] == main_neighbor].copy()
+
+            _df.loc[:, 'Timestamp'] = pd.to_datetime(_df.loc[:, 'Timestamp'], format='%m/%d/%Y %H:%M:%S')
+            _df_up.loc[:, 'Timestamp'] = pd.to_datetime(_df_up.loc[:, 'Timestamp'], format='%m/%d/%Y %H:%M:%S')
+            _df_down.loc[:, 'Timestamp'] = pd.to_datetime(_df_down.loc[:, 'Timestamp'], format='%m/%d/%Y %H:%M:%S')
+            _df_main.loc[:, 'Timestamp'] = pd.to_datetime(_df_main.loc[:, 'Timestamp'], format='%m/%d/%Y %H:%M:%S')
+
 
             # create output directory
             outdir = self.outpath + "plots_misconfigs_" + self.data_dates + "/{}".format(mis_id)
@@ -156,7 +164,9 @@ class PlotMisconfigs:
             plt.rc('font', size=8)
             plt.title("Longitudinal comparison of VDS {}".format(mis_id))
             plt.xlabel('Time')
-            plt.xticks([])
+            plt.xticks(rotation=45)
+            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            plt.gca().xaxis.set_major_locator(mdates.HourLocator(byhour=range(1,24), interval=2))
             plt.ylabel('Flow')
             # plt.ylim(0, 250)
             plt.plot(_df_up['Timestamp'], _df_up['Flow'],
@@ -166,6 +176,7 @@ class PlotMisconfigs:
             plt.plot(_df['Timestamp'], _df['Flow'],
                      color='black', label='HOV sensor: {}'.format(mis_id))
             plt.legend()
+            #plt.show()
             plt.savefig(outdir + '/{}_long.png'.format(mis_id), dpi=300, bbox_inches='tight')
             plt.close()
 
@@ -175,7 +186,9 @@ class PlotMisconfigs:
             plt.rc('font', size=8)
             plt.title("Lateral comparison of VDS {}".format(mis_id))
             plt.xlabel('Time')
-            plt.xticks([])
+            plt.xticks(rotation=45)
+            plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+            plt.gca().xaxis.set_major_locator(mdates.HourLocator(byhour=range(1,24), interval=2))
             plt.ylabel('Flow')
             # plt.ylim(0, 250)
             for n in range(1, main_num_lanes + 1):
@@ -197,7 +210,9 @@ class PlotMisconfigs:
                 plt.rc('font', size=8)
                 plt.title("Corrected lane configuration of VDS {}".format(mis_id))
                 plt.xlabel('Time')
-                plt.xticks([])
+                plt.xticks(rotation=45)
+                plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+                plt.gca().xaxis.set_major_locator(mdates.HourLocator(byhour=range(1, 24), interval=2))
                 plt.ylabel('Flow')
                 # plt.ylim(0, 250)
                 # Up/Down stream lanes
@@ -216,3 +231,10 @@ class PlotMisconfigs:
                 plt.legend()
                 plt.savefig(outdir + '/{}_fix.png'.format(mis_id), dpi=300, bbox_inches='tight')
                 plt.close()
+
+
+if __name__ == "__main__":
+    self = PlotMisconfigs(inpath="C:/gitclones/connected-corridors/hov-degradation/experiments/input/D7/5min/2020_12_06-12",
+                          outpath="C:/Users/nichf/Desktop/output",
+                          plot_date="2020_12_09",
+                          date_range_string="2020-12-06_to_2020-12-12")
